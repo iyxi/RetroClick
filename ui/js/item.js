@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:3000/'
 
     const getToken = () => {
         const token = sessionStorage.getItem('token');
@@ -61,6 +61,14 @@ $(document).ready(function () {
                 }
             }
         ],
+    });
+
+    $("#createItemBtn").on('click', function () {
+        $("#iform").trigger("reset");
+        $('#itemImage').remove();
+        $('#itemId').remove();
+        $('#itemSubmit').show();
+        $('#itemUpdate').hide();
     });
 
     $("#itemSubmit").on('click', function (e) {

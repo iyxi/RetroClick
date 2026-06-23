@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:3000/'
     var itemCount = 0;
     var priceTotal = 0;
     var quantity = 0;
@@ -102,6 +102,12 @@ $(document).ready(function () {
         const price = $("#productDetailsModalBody strong").text().replace(/[^\d.]/g, '');
         const image = $("#productDetailsModalBody img").attr('src');
         const stock = parseInt($("#productDetailsModalBody p:contains('Stock')").text().replace(/[^\d]/g, ''));
+
+        if (!qty || qty < 1 || qty > stock) {
+            Swal.fire('Invalid Quantity', `Choose between 1 and ${stock}.`, 'warning');
+            return;
+        }
+
         let cart = getCart();
 
         let existing = cart.find(item => item.item_id == id);
@@ -122,6 +128,7 @@ $(document).ready(function () {
         itemCount++;
         $('#itemCount').text(itemCount).css('display', 'block');
         $('#productDetailsModal').modal('hide')
+        Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
         // console.log(cart)
 
     });

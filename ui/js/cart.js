@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:3000/'
     function getCart() {
         let cart = localStorage.getItem('cart');
         return cart ? JSON.parse(cart) : [];
@@ -84,39 +84,50 @@ $(document).ready(function () {
         itemCount = 0;
         priceTotal = 0;
         let cart = getCart()
-        // let userId = getUserId()
 
-        console.log(JSON.stringify(cart));
+        if (cart.length === 0) {
+            Swal.fire('Cart Empty', 'Add items to your cart before checking out.', 'info');
+            return;
+        }
 
-        const payload = JSON.stringify(cart);
-        // console.log(getToken())
-        // if (getToken()) {
-        //     $.ajax({
-        //         type: "POST",
-        //         url: `${url}api/v1/items/checkout`,
-        //         data: payload,
-        //         dataType: "json",
-        //         processData: false,
-        //         contentType: 'application/json; charset=utf-8',
-        //         headers: {
-        //             "Authorization": "Bearer " + getToken()
-        //         },
-        //         success: function (data) {
-        //             console.log(data);
-        //             // alert(data.status);
-        //             Swal.fire({
-        //                 icon: "success",
-        //                 text: data.status,
-        //             });
-        //             localStorage.removeItem('cart')
-        //             renderCart();
-        //         },
-        //         error: function (error) {
-        //             console.log(error);
-        //         }
-        //     });
+        const token = getToken();
+        if (!token) {
+            return;
+        }
 
-        // }
+        const payload = JSON.stringify({
+            cart: cart.map(item => ({
+                item_id: item.item_id,
+                quantity: item.quantity
+            }))
+        });
+
+        $.ajax({
+            type: "POST",
+            url: `${url}api/v1/create-order`,
+            data: payload,
+            dataType: "json",
+            processData: false,
+            contentType: 'application/json; charset=utf-8',
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            success: function (data) {
+                Swal.fire({
+                    icon: "success",
+                    text: data.message || 'Checkout complete'
+                });
+                localStorage.removeItem('cart')
+                renderCart();
+            },
+            error: function (error) {
+                console.log(error);
+                Swal.fire({
+                    icon: "error",
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Checkout failed'
+                });
+            }
+        });
 
 
     });

@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:3000/'
 
     const getStoredUserId = () => {
         const rawUserId = sessionStorage.getItem('userId');
@@ -39,10 +39,16 @@ $(document).ready(function () {
                     text: "register success",
                     position: 'bottom-right'
 
+                }).then(() => {
+                    window.location.href = 'login.html';
                 });
             },
             error: function (error) {
                 console.log(error);
+                Swal.fire({
+                    icon: "error",
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Registration failed'
+                });
             }
         });
     });
@@ -63,8 +69,31 @@ $(document).ready(function () {
     $("#login").on('click', function (e) {
         e.preventDefault();
 
-        let email = $("#email").val()
+        const showLoginError = message => {
+            $('#loginError').html(`Failed login <span>${message}</span>`);
+            $('#email, #password').addClass('input-error');
+        }
+
+        const clearLoginError = () => {
+            $('#loginError').empty();
+            $('#email, #password').removeClass('input-error');
+        }
+
+        let email = $("#email").val().trim()
         let password = $("#password").val()
+
+        clearLoginError();
+
+        if (!email.includes('@')) {
+            showLoginError('no @ in email');
+            return;
+        }
+
+        if (!password) {
+            showLoginError('password is required');
+            return;
+        }
+
         let user = {
             email,
             password
@@ -94,15 +123,7 @@ $(document).ready(function () {
             },
             error: function (error) {
                 console.log(error);
-                Swal.fire({
-                    icon: "error",
-                    text: error.responseJSON.message,
-                    showConfirmButton: false,
-                    position: 'bottom-right',
-                    timer: 1000,
-                    timerProgressBar: true
-
-                });
+                showLoginError(error.responseJSON?.message || error.responseJSON?.error || 'please try again');
             }
         });
     });
@@ -179,6 +200,10 @@ $(document).ready(function () {
             },
             error: function (error) {
                 console.log(error);
+                Swal.fire({
+                    icon: 'error',
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Failed to deactivate account'
+                });
             }
         });
     });

@@ -58,13 +58,13 @@ const loginUser = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            return res.status(404).json({ success: false, message: 'no such account exists' });
         }
 
         // Compare passwords
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
-            return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            return res.status(401).json({ success: false, message: 'incorrect password' });
         }
 
         // Generate JWT token
