@@ -29,7 +29,6 @@ $(document).ready(function () {
             method: "POST",
             url: `${url}api/v1/register`,
             data: JSON.stringify(user),
-            processData: false,
             contentType: 'application/json; charset=utf-8',
             dataType: "json",
             success: function (data) {

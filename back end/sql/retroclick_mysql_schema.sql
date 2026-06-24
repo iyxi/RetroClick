@@ -608,6 +608,36 @@ VALUES
 (2, 'images/items/nikon-fm2-main.jpg', 1, 1),
 (3, 'images/items/olympus-35sp-main.jpg', 1, 1);
 
+-- Additional sample items to match front-end examples
+INSERT INTO item (
+  description,
+  cost_price,
+  sell_price,
+  img_path,
+  camera_brand,
+  camera_model,
+  `condition`,
+  year_released,
+  is_visible,
+  is_available
+)
+VALUES
+('Professional rangefinder camera body', 12500.00, 18500.00, 'images/items/leica-m6-main.jpg', 'Leica', 'M6', 'Like New', 1984, 1, 1),
+('Classic SLR camera body', 4200.00, 6800.00, 'images/items/pentax-k1000-main.jpg', 'Pentax', 'K1000', 'Good', 1976, 1, 1),
+('Manual focus SLR with 50mm lens', 5100.00, 7450.00, 'images/items/minolta-srt101-main.jpg', 'Minolta', 'SRT 101', 'Good', 1972, 1, 1);
+
+INSERT INTO stock (item_id, quantity, low_stock_threshold)
+VALUES
+(4, 4, 2),
+(5, 6, 2),
+(6, 5, 2);
+
+INSERT INTO item_images (item_id, image_path, is_primary, sort_order)
+VALUES
+(4, 'images/items/leica-m6-main.jpg', 1, 1),
+(5, 'images/items/pentax-k1000-main.jpg', 1, 1),
+(6, 'images/items/minolta-srt101-main.jpg', 1, 1);
+
 -- Example customer profile for Sample Customer (user_id = 3 in fresh DB).
 INSERT INTO customer (user_id, fname, lname, addressline, zipcode, phone)
 VALUES (3, 'Juan', 'Dela Cruz', 'Taguig City', '1630', '09170000000');

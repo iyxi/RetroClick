@@ -650,11 +650,32 @@
                 .replace(/>/g, '&gt;');
         }
 
+        function isLoggedIn() {
+            return !!sessionStorage.getItem('token');
+        }
+
+        function requireLoginForCart() {
+            if (!isLoggedIn()) {
+                Swal.fire({
+                    icon: 'warning',
+                    text: 'Please log in before adding items to your cart.',
+                    confirmButtonText: 'Login'
+                }).then(() => {
+                    window.location.href = 'login.html';
+                });
+                return false;
+            }
+            return true;
+        }
+
         function viewProduct(id) {
             window.location.href = `item.html?id=${id}`;
         }
 
         function addToCart(id, desc, price, img, stock) {
+            if (!requireLoginForCart()) {
+                return;
+            }
             if (stock <= 0) {
                 Swal.fire('Out of Stock', 'This item is not available', 'warning');
                 return;

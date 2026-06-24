@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - RetroClick</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: #2c3e50;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        .sidebar h2 {
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .sidebar a, .sidebar button {
+            display: block;
+            color: #ecf0f1;
+            padding: 12px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-decoration: none;
+            border: none;
+            background: none;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .sidebar a:hover, .sidebar button:hover {
+            background: #3498db;
+            padding-left: 25px;
+        }
+        .sidebar .nav-item.active {
+            background: #3498db;
+            border-left: 4px solid #e74c3c;
+        }
+        .main-content {
+            padding: 30px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            border-radius: 8px;
+        }
+        .stat-card.products {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .stat-card.orders {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stat-card.customers {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .stat-card.revenue {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        .stat-card h4 {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 sidebar">
+                <h2><i class="fas fa-crown"></i> Admin Panel</h2>
+                <button class="nav-item active" onclick="showTab('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+                <button class="nav-item" onclick="showTab('products')"><i class="fas fa-box"></i> Products</button>
+                <button class="nav-item" onclick="showTab('orders')"><i class="fas fa-shopping-cart"></i> Orders</button>
+                <button class="nav-item" onclick="showTab('customers')"><i class="fas fa-users"></i> Customers</button>
+                <button class="nav-item" onclick="showTab('stock')"><i class="fas fa-warehouse"></i> Stock</button>
+                <hr style="background: #34495e;">
+                <button onclick="logout()" style="background: #e74c3c; margin-top: 20px;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="header">
+                    <h1>RetroClick Admin Dashboard</h1>
+                    <span id="adminName"></span>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <h2>Dashboard Overview</h2>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card products">
+                                <i class="fas fa-box" style="font-size: 30px;"></i>
+                                <h4 id="totalProducts">0</h4>
+                                <p>Total Products</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card orders">
+                                <i class="fas fa-shopping-cart" style="font-size: 30px;"></i>
+                                <h4 id="totalOrders">0</h4>
+                                <p>Total Orders</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card customers">
+                                <i class="fas fa-users" style="font-size: 30px;"></i>
+                                <h4 id="totalCustomers">0</h4>
+                                <p>Total Customers</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card revenue">
+                                <i class="fas fa-money-bill-wave" style="font-size: 30px;"></i>
+                                <h4 id="totalRevenue">₱0</h4>
+                                <p>Total Revenue</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Recent Orders</h5>
+                                    <div id="recentOrdersTable" class="table-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Tab -->
+                <div id="products" class="tab-content">
+                    <h2>Product Management</h2>
+                    <button class="btn btn-primary mb-3" onclick="showProductForm()"><i class="fas fa-plus"></i> Add Product</button>
+                    
+                    <div id="productForm" style="display: none;" class="card mb-3">
+                        <div class="card-body">
+                            <h5>Add/Edit Product</h5>
+                            <form id="pForm">
+                                <input type="hidden" id="productId">
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label>Brand</label>
+                                        <input type="text" class="form-control" id="pbrand" required>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label>Model</label>
+                                        <input type="text" class="form-control" id="pmodel" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-8">
+                                        <label>Description</label>
+                                        <input type="text" class="form-control" id="pdesc" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Condition</label>
+                                        <select class="form-control" id="pcondition">
+                                            <option>Brand New</option>
+                                            <option>Like New</option>
+                                            <option>Good</option>
+                                            <option>Fair</option>
+                                            <option>Used</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label>Cost Price (₱)</label>
+                                        <input type="number" class="form-control" id="pcost" required step="0.01">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Sell Price (₱)</label>
+                                        <input type="number" class="form-control" id="psell" required step="0.01">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Year Released</label>
+                                        <input type="year" class="form-control" id="pyear">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-success" onclick="saveProduct()">Save</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideProductForm()">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Brand</th>
+                                    <th>Model</th>
+                                    <th>Description</th>
+                                    <th>Sell Price</th>
+                                    <th>Condition</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Orders Tab -->
+                <div id="orders" class="tab-content">
+                    <h2>Orders Management</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customers Tab -->
+                <div id="customers" class="tab-content">
+                    <h2>Customers Management</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Stock Tab -->
+                <div id="stock" class="tab-content">
+                    <h2>Stock Management</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Current Stock</th>
+                                    <th>Low Stock Alert</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

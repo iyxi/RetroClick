@@ -13,6 +13,24 @@ $(document).ready(function () {
         localStorage.setItem('cart', JSON.stringify(cart));
     }
 
+    const isLoggedIn = () => {
+        return !!sessionStorage.getItem('token');
+    };
+
+    const requireLogin = () => {
+        if (!isLoggedIn()) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'Please log in before adding items to your cart.',
+                confirmButtonText: 'Login'
+            }).then(() => {
+                window.location.href = 'login.html';
+            });
+            return false;
+        }
+        return true;
+    };
+
     $.ajax({
         method: "GET",
         url: `${url}api/v1/items`,
@@ -95,6 +113,9 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '#detailsAddToCart', function () {
+        if (!requireLogin()) {
+            return;
+        }
 
         const qty = parseInt($("#detailsQty").val());
         const id = parseInt($("#detailsItemId").val());
@@ -131,6 +152,43 @@ $(document).ready(function () {
         Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
         // console.log(cart)
 
+    });
+
+    $(document).on('click', '.btn-cart', function () {
+        if (!requireLogin()) {
+            return;
+        }
+
+        const id = parseInt($(this).data('id'));
+        const description = $(this).data('description');
+        const price = parseFloat($(this).data('price')) || 0;
+        const image = $(this).data('image');
+        const stock = parseInt($(this).data('stock')) || 0;
+
+        if (stock <= 0) {
+            Swal.fire('Out of Stock', 'This item is not available.', 'warning');
+            return;
+        }
+
+        let cart = getCart();
+        let existing = cart.find(item => item.item_id == id);
+        if (existing) {
+            existing.quantity += 1;
+        } else {
+            cart.push({
+                item_id: id,
+                description: description,
+                price: price,
+                image: image,
+                stock: stock,
+                quantity: 1
+            });
+        }
+        saveCart(cart);
+
+        itemCount++;
+        $('#itemCount').text(itemCount).css('display', 'block');
+        Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
     });
 
     $("#home").load("header.html")
