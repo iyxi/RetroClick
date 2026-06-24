@@ -427,6 +427,63 @@
         </div>
     </section>
 
+    <!-- Static Example Products -->
+    <section class="featured-section" id="example-products">
+        <div class="container">
+            <h2 class="section-title">Example Vintage Picks</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="product-card">
+                        <div class="product-image"><img src="https://via.placeholder.com/400x250?text=Canon+AE-1" alt="Canon AE-1"></div>
+                        <div class="product-body">
+                            <div class="product-brand">Canon</div>
+                            <div class="product-title">Canon AE-1</div>
+                            <div class="product-condition">Excellent</div>
+                            <div class="product-price">₱12,500.00</div>
+                            <div class="product-stock">Stock: 5</div>
+                            <div class="product-actions">
+                                <button class="btn-details" data-id="101">Details</button>
+                                <button class="btn-cart" data-id="101" data-description="Canon AE-1" data-price="12500" data-image="https://via.placeholder.com/400x250?text=Canon+AE-1" data-stock="5">Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="product-card">
+                        <div class="product-image"><img src="https://via.placeholder.com/400x250?text=Nikon+FM2" alt="Nikon FM2"></div>
+                        <div class="product-body">
+                            <div class="product-brand">Nikon</div>
+                            <div class="product-title">Nikon FM2</div>
+                            <div class="product-condition">Very Good</div>
+                            <div class="product-price">₱8,900.00</div>
+                            <div class="product-stock">Stock: 3</div>
+                            <div class="product-actions">
+                                <button class="btn-details" data-id="102">Details</button>
+                                <button class="btn-cart" data-id="102" data-description="Nikon FM2" data-price="8900" data-image="https://via.placeholder.com/400x250?text=Nikon+FM2" data-stock="3">Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="product-card">
+                        <div class="product-image"><img src="https://via.placeholder.com/400x250?text=Olympus+OM-1" alt="Olympus OM-1"></div>
+                        <div class="product-body">
+                            <div class="product-brand">Olympus</div>
+                            <div class="product-title">Olympus OM-1</div>
+                            <div class="product-condition">Good</div>
+                            <div class="product-price">₱9,700.00</div>
+                            <div class="product-stock">Stock: 4</div>
+                            <div class="product-actions">
+                                <button class="btn-details" data-id="103">Details</button>
+                                <button class="btn-cart" data-id="103" data-description="Olympus OM-1" data-price="9700" data-image="https://via.placeholder.com/400x250?text=Olympus+OM-1" data-stock="4">Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Featured Products Section -->
     <section class="featured-section" id="featured">
         <div class="container">
@@ -546,14 +603,18 @@
 
         function displayProducts(products) {
             let html = '';
+            const baseUrl = API_URL.replace('/api/v1', '');
             products.forEach(product => {
                 const description = escapeHtml(product.description || '');
                 const imagePath = escapeHtml(product.img_path || '');
+                const imageUrl = imagePath
+                    ? (imagePath.startsWith('http') ? imagePath : `${baseUrl}/${imagePath.replace(/^\/+/, '')}`)
+                    : '';
                 html += `
                     <div class="col-md-4 mb-4">
                         <div class="product-card">
                             <div class="product-image">
-                                ${imagePath ? `<img src="${API_URL}/../../../${imagePath}" alt="${description}">` : '<i class="fas fa-camera"></i>'}
+                                ${imageUrl ? `<img src="${imageUrl}" alt="${description}">` : '<i class="fas fa-camera"></i>'}
                             </div>
                             <div class="product-body">
                                 <div class="product-brand">${product.camera_brand || 'Vintage'}</div>
@@ -568,7 +629,7 @@
                                         data-id="${product.item_id}"
                                         data-description="${description}"
                                         data-price="${product.sell_price || 0}"
-                                        data-image="${imagePath}"
+                                        data-image="${imageUrl}"
                                         data-stock="${product.quantity || 0}"
                                     >Add to Cart</button>
                                 </div>

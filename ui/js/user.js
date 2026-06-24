@@ -40,7 +40,7 @@ $(document).ready(function () {
                     position: 'bottom-right'
 
                 }).then(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = 'index.html';
                 });
             },
             error: function (error) {
@@ -160,6 +160,8 @@ $(document).ready(function () {
                     text: 'Profile updated successfully',
                     showConfirmButton: false,
                     timer: 1500
+                }).then(() => {
+                    window.location.href = 'index.html';
                 });
             },
             error: function (error) {

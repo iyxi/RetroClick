@@ -107,7 +107,6 @@ $(document).ready(function () {
             url: `${url}api/v1/create-order`,
             data: payload,
             dataType: "json",
-            processData: false,
             contentType: 'application/json; charset=utf-8',
             headers: {
                 "Authorization": "Bearer " + token
@@ -115,10 +114,14 @@ $(document).ready(function () {
             success: function (data) {
                 Swal.fire({
                     icon: "success",
-                    text: data.message || 'Checkout complete'
+                    text: data.message || 'Checkout complete',
+                    timer: 1800,
+                    showConfirmButton: false
+                }).then(() => {
+                    localStorage.removeItem('cart');
+                    renderCart();
+                    window.location.href = 'home.html';
                 });
-                localStorage.removeItem('cart')
-                renderCart();
             },
             error: function (error) {
                 console.log(error);
