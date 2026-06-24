@@ -117,8 +117,15 @@ $(document).ready(function () {
                 // sessionStorage.setItem('token', JSON.stringify(data.access_token))
                 sessionStorage.setItem('token', JSON.stringify(data.token))
                 sessionStorage.setItem('userId', JSON.stringify(data.user.id))
+                sessionStorage.setItem('userRole', JSON.stringify(data.user.role))
+                sessionStorage.setItem('userName', JSON.stringify(data.user.name))
 
-                window.location.href = 'profile.html'
+                // Redirect based on user role
+                if (data.user.role === 'admin' || data.user.role === 'manager') {
+                    window.location.href = 'admin.html'
+                } else {
+                    window.location.href = 'profile.html'
+                }
             },
             error: function (error) {
                 console.log(error);
@@ -137,6 +144,16 @@ $(document).ready(function () {
                 text: 'Please log in again before updating your profile.'
             });
             window.location.href = 'login.html';
+            return;
+        }
+
+        // Validate phone is not empty
+        const phone = $('#phone').val().trim();
+        if (!phone) {
+            Swal.fire({
+                icon: 'error',
+                text: 'Phone number is required'
+            });
             return;
         }
 
@@ -197,6 +214,8 @@ $(document).ready(function () {
                 });
                 sessionStorage.removeItem('userId')
                 sessionStorage.removeItem('token')
+                sessionStorage.removeItem('userRole')
+                sessionStorage.removeItem('userName')
                 window.location.href = 'home.html'
             },
             error: function (error) {
@@ -221,6 +240,8 @@ $(document).ready(function () {
         });
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('userId')
+        sessionStorage.removeItem('userRole')
+        sessionStorage.removeItem('userName')
         window.location.href = 'login.html'
 
     });

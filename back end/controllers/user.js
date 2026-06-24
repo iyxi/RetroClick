@@ -73,7 +73,8 @@ const loginUser = async (req, res) => {
         const userResponse = {
             id: user.id,
             name: user.name,
-            email: user.email
+            email: user.email,
+            role: user.role
         };
 
         return res.status(200).json({
@@ -92,9 +93,19 @@ const updateUser = async (req, res) => {
     try {
         const { fname, lname, addressline, zipcode, phone, userId } = req.body;
 
-        // Validate required field
+        // Validate required fields
         if (!userId) {
             return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        if (!phone || phone.trim() === '') {
+            return res.status(400).json({ error: 'Phone number is required' });
+        }
+
+        // Convert userId to integer
+        const userIdInt = parseInt(userId, 10);
+        if (isNaN(userIdInt)) {
+            return res.status(400).json({ error: 'Invalid User ID' });
         }
 
         let imagePath = null;
@@ -104,7 +115,7 @@ const updateUser = async (req, res) => {
 
         // Find or create customer record
         const [customer, created] = await Customer.findOrCreate({
-            where: { user_id: userId },
+            where: { user_id: userIdInt },
             defaults: {
                 fname,
                 lname,
@@ -112,7 +123,7 @@ const updateUser = async (req, res) => {
                 zipcode,
                 phone,
                 image_path: imagePath,
-                user_id: userId
+                user_id: userIdInt
             }
         });
 
