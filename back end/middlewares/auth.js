@@ -24,16 +24,22 @@ exports.isAuthenticatedUser = (req, res, next) => {
 exports.isAdmin = async (req, res, next) => {
     try {
         const db = require('../models');
+        
+        // Verify User model is available
+        if (!db || !db.User) {
+            return res.status(500).json({ message: 'Authorization error', details: 'User model not initialized' });
+        }
+
         const User = db.User;
+        const user = await User.findOne({ where: { id: req.body.user.id } });
 
-        const user = await User.findByPk(req.body.user.id);
-
-        if (!user || user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+        if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+            return res.status(403).json({ message: 'Access denied. Admin or Manager privileges required.' });
         }
 
         next();
     } catch (error) {
+        console.error('isAdmin middleware error:', error);
         return res.status(500).json({ message: 'Authorization error', details: error.message });
     }
 };
@@ -41,9 +47,13 @@ exports.isAdmin = async (req, res, next) => {
 exports.isManager = async (req, res, next) => {
     try {
         const db = require('../models');
-        const User = db.User;
+        
+        if (!db || !db.User) {
+            return res.status(500).json({ message: 'Authorization error', details: 'User model not initialized' });
+        }
 
-        const user = await User.findByPk(req.body.user.id);
+        const User = db.User;
+        const user = await User.findOne({ where: { id: req.body.user.id } });
 
         if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
             return res.status(403).json({ message: 'Access denied. Manager privileges required.' });
@@ -51,6 +61,7 @@ exports.isManager = async (req, res, next) => {
 
         next();
     } catch (error) {
+        console.error('isManager middleware error:', error);
         return res.status(500).json({ message: 'Authorization error', details: error.message });
     }
 };

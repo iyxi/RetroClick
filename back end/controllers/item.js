@@ -7,37 +7,40 @@ const ItemImage = db.ItemImage;
 exports.getAllItems = async (req, res) => {
     try {
         const items = await Item.findAll({
-            include: [
-                { model: Stock },
-                { model: ItemImage }
-            ],
+            raw: true,
             order: [['created_at', 'DESC']]
         });
-        return res.status(200).json({ rows: items, success: true });
+        
+        // Fetch stock separately for each item
+        const itemsWithStock = await Promise.all(items.map(async (item) => {
+            const stock = await Stock.findOne({ where: { item_id: item.item_id }, raw: true });
+            return { ...item, Stock: stock };
+        }));
+        
+        return res.status(200).json({ rows: itemsWithStock, success: true });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching items' });
+        return res.status(500).json({ error: 'Error fetching items', details: error.message });
     }
 };
 
 // Get single item with stock
 exports.getSingleItem = async (req, res) => {
     try {
-        const item = await Item.findByPk(req.params.id, {
-            include: [
-                { model: Stock },
-                { model: ItemImage }
-            ]
-        });
+        const item = await Item.findByPk(req.params.id, { raw: true });
 
         if (!item) {
             return res.status(404).json({ success: false, message: 'Item not found' });
         }
+        
+        // Fetch stock separately
+        const stock = await Stock.findOne({ where: { item_id: item.item_id }, raw: true });
+        const itemWithStock = { ...item, Stock: stock };
 
-        return res.status(200).json({ success: true, result: item });
+        return res.status(200).json({ success: true, result: itemWithStock });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching item' });
+        return res.status(500).json({ error: 'Error fetching item', details: error.message });
     }
 };
 
@@ -180,5 +183,4 @@ exports.deleteItem = async (req, res) => {
         console.log(error);
         return res.status(500).json({ error: 'Error deleting item', details: error.message });
     }
-};
 };

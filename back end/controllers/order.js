@@ -9,23 +9,56 @@ const sendEmail = require('../utils/sendEmail');
 // Get all orders with details
 exports.getAllOrders = async (req, res) => {
     try {
+        // Fetch orders with raw query
         const orders = await Order.findAll({
-            include: [
-                { 
-                    model: OrderLine, 
-                    include: [{ model: Item, attributes: ['item_id', 'description', 'sell_price'] }] 
-                },
-                { model: User, attributes: ['id', 'name', 'email'] }
-            ],
-            order: [['created_at', 'DESC']]
+            raw: true,
+            order: [['orderinfo_id', 'DESC']]
         });
+
+        // Fetch customer and user data for each order
+        const mappedOrders = await Promise.all(orders.map(async (order) => {
+            try {
+                const customer = await Customer.findOne({ 
+                    where: { customer_id: order.customer_id },
+                    raw: true 
+                });
+                
+                let user = null;
+                if (customer && customer.user_id) {
+                    user = await User.findOne({
+                        where: { id: customer.user_id },
+                        attributes: ['id', 'name', 'email'],
+                        raw: true
+                    });
+                }
+                
+                return {
+                    id: order.orderinfo_id,
+                    customer_id: order.customer_id,
+                    total_amount: order.total_amount,
+                    status: order.status,
+                    created_at: order.date_placed,
+                    User: user
+                };
+            } catch (err) {
+                console.log('Error mapping order:', err.message);
+                return {
+                    id: order.orderinfo_id,
+                    customer_id: order.customer_id,
+                    total_amount: order.total_amount,
+                    status: order.status,
+                    created_at: order.date_placed,
+                    User: null
+                };
+            }
+        }));
 
         return res.status(200).json({ 
             success: true,
-            rows: orders 
+            rows: mappedOrders
         });
     } catch (error) {
-        console.log(error);
+        console.log('getAllOrders error:', error.message);
         return res.status(500).json({ error: 'Error fetching orders', details: error.message });
     }
 };
@@ -40,7 +73,10 @@ exports.getSingleOrder = async (req, res) => {
                     model: OrderLine, 
                     include: [{ model: Item, attributes: ['item_id', 'description', 'sell_price'] }] 
                 },
-                { model: User, attributes: ['id', 'name', 'email'] }
+                { 
+                    model: Customer,
+                    include: [{ model: User, attributes: ['id', 'name', 'email'] }]
+                }
             ]
         });
 
@@ -48,7 +84,18 @@ exports.getSingleOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        return res.status(200).json({ success: true, result: order });
+        // Map the response to match frontend expectations
+        const mappedOrder = {
+            id: order.orderinfo_id,
+            customer_id: order.customer_id,
+            total_amount: order.total_amount,
+            status: order.status,
+            created_at: order.date_placed,
+            User: order.Customer ? order.Customer.User : null,
+            OrderLines: order.OrderLines
+        };
+
+        return res.status(200).json({ success: true, result: mappedOrder });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching order', details: error.message });
@@ -64,23 +111,29 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ error: 'User ID and cart items are required' });
         }
 
+        // Get customer ID from user ID
+        const customer = await Customer.findOne({ where: { user_id: user.id } });
+        if (!customer) {
+            return res.status(400).json({ error: 'Customer record not found for this user' });
+        }
+
         // Calculate total amount
         let total_amount = 0;
         for (const item of cart) {
             total_amount += item.price * item.quantity;
         }
 
-        // Create order
+        // Create order using the correct field names
         const order = await Order.create({
-            user_id: user.id,
+            customer_id: customer.customer_id,
             total_amount,
-            status: 'pending'
+            status: 'Pending'
         });
 
         // Create order lines
         for (const item of cart) {
             await OrderLine.create({
-                order_id: order.id,
+                orderinfo_id: order.orderinfo_id,
                 item_id: item.item_id,
                 quantity: item.quantity,
                 unit_price: item.price
@@ -94,7 +147,7 @@ exports.createOrder = async (req, res) => {
                 await sendEmail({
                     email: userRecord.email,
                     subject: 'Order Confirmation - RetroClick',
-                    message: `Your order #${order.id} has been placed successfully. Total: ₱${total_amount.toFixed(2)}`
+                    message: `Your order #${order.orderinfo_id} has been placed successfully. Total: ₱${total_amount.toFixed(2)}`
                 });
             } catch (emailErr) {
                 console.log('Email error:', emailErr);
@@ -104,7 +157,7 @@ exports.createOrder = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: 'Order created successfully',
-            order_id: order.id,
+            order_id: order.orderinfo_id,
             order
         });
     } catch (error) {
@@ -128,7 +181,7 @@ exports.updateOrder = async (req, res) => {
         if (total_amount !== undefined) updateData.total_amount = total_amount;
         if (status !== undefined) updateData.status = status;
 
-        await Order.update(updateData, { where: { id } });
+        await Order.update(updateData, { where: { orderinfo_id: id } });
 
         return res.status(200).json({
             success: true,
@@ -146,10 +199,10 @@ exports.deleteOrder = async (req, res) => {
         const { id } = req.params;
 
         // Delete order lines first
-        await OrderLine.destroy({ where: { order_id: id } });
+        await OrderLine.destroy({ where: { orderinfo_id: id } });
         
         // Delete order
-        await Order.destroy({ where: { id } });
+        await Order.destroy({ where: { orderinfo_id: id } });
 
         return res.status(200).json({
             success: true,

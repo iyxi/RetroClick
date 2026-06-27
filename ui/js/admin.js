@@ -2,10 +2,10 @@ $(document).ready(function() {
     const url = 'http://localhost:3000/';
     
     // Get authentication token from session
-    const token = sessionStorage.getItem('token');
-    const userRole = sessionStorage.getItem('userRole');
-    const userId = sessionStorage.getItem('userId');
-    const userName = sessionStorage.getItem('userName');
+    let token = sessionStorage.getItem('token');
+    let userRole = sessionStorage.getItem('userRole');
+    let userId = sessionStorage.getItem('userId');
+    let userName = sessionStorage.getItem('userName');
     
     // Verify admin access
     if (!token || !userRole) {
@@ -13,9 +13,15 @@ $(document).ready(function() {
         return;
     }
     
-    const role = JSON.parse(userRole);
-    if (role !== 'admin' && role !== 'manager') {
-        window.location.href = 'profile.html';
+    try {
+        const role = JSON.parse(userRole);
+        if (role !== 'admin' && role !== 'manager') {
+            window.location.href = 'profile.html';
+            return;
+        }
+    } catch (e) {
+        console.error('Error parsing role:', e);
+        window.location.href = 'login.html';
         return;
     }
 
@@ -42,6 +48,10 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(data) {
                 $('#totalProducts').text(data.rows ? data.rows.length : 0);
+            },
+            error: function() {
+                console.error('Failed to load products count');
+                $('#totalProducts').text('0');
             }
         });
 
@@ -55,7 +65,9 @@ $(document).ready(function() {
                 loadRecentOrders(data.rows || []);
             },
             error: function() {
+                console.error('Failed to load orders count');
                 $('#totalOrders').text('0');
+                $('#recentOrdersTable').html('<p class="text-center">No orders available</p>');
             }
         });
 
@@ -66,6 +78,10 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(data) {
                 $('#totalUsers').text(data.rows ? data.rows.length : 0);
+            },
+            error: function() {
+                console.error('Failed to load users count');
+                $('#totalUsers').text('0');
             }
         });
     };
@@ -147,9 +163,9 @@ $(document).ready(function() {
 
     window.saveProduct = function() {
         const productId = $('#productId').val();
-        const brand = $('#pbrand').val();
-        const model = $('#pmodel').val();
-        const desc = $('#pdesc').val();
+        const brand = $('#pbrand').val()?.trim();
+        const model = $('#pmodel').val()?.trim();
+        const desc = $('#pdesc').val()?.trim();
         const condition = $('#pcondition').val();
         const costPrice = $('#pcost').val();
         const sellPrice = $('#psell').val();
@@ -157,8 +173,14 @@ $(document).ready(function() {
         const qty = $('#pqty').val();
         const imageFile = $('#pimage')[0].files[0];
 
+        // Validation
         if (!brand || !model || !desc || !sellPrice) {
-            Swal.fire('Error', 'Please fill all required fields', 'error');
+            Swal.fire('Error', 'Please fill all required fields (Brand, Model, Description, Sell Price)', 'error');
+            return;
+        }
+
+        if (parseFloat(sellPrice) <= 0) {
+            Swal.fire('Error', 'Sell Price must be greater than 0', 'error');
             return;
         }
 
@@ -166,21 +188,21 @@ $(document).ready(function() {
         formData.append('camera_brand', brand);
         formData.append('camera_model', model);
         formData.append('description', desc);
-        formData.append('condition', condition);
-        formData.append('cost_price', costPrice);
+        formData.append('condition', condition || 'Good');
+        formData.append('cost_price', costPrice || 0);
         formData.append('sell_price', sellPrice);
-        formData.append('year_released', year);
-        formData.append('quantity', qty);
+        formData.append('year_released', year || new Date().getFullYear());
+        formData.append('quantity', qty || 0);
         if (imageFile) {
             formData.append('image', imageFile);
         }
 
         const method = productId ? 'PUT' : 'POST';
-        const url_endpoint = productId ? `${url}api/v1/items/${productId}` : `${url}api/v1/items`;
+        const endpoint = productId ? `${url}api/v1/items/${productId}` : `${url}api/v1/items`;
 
         $.ajax({
             method: method,
-            url: url_endpoint,
+            url: endpoint,
             headers: getAuthHeader(),
             data: formData,
             contentType: false,
@@ -193,7 +215,9 @@ $(document).ready(function() {
                 });
             },
             error: function(error) {
-                Swal.fire('Error', error.responseJSON?.error || 'Failed to save product', 'error');
+                console.error('Save product error:', error);
+                const errorMsg = error.responseJSON?.error || error.responseJSON?.message || 'Failed to save product';
+                Swal.fire('Error', errorMsg, 'error');
             }
         });
     };
@@ -205,12 +229,13 @@ $(document).ready(function() {
             headers: getAuthHeader(),
             dataType: 'json',
             success: function(data) {
+                // Destroy existing DataTable if it exists
                 if ($.fn.DataTable.isDataTable('#productsTable')) {
                     productsDataTable.destroy();
                 }
 
                 let html = '';
-                if (data.rows) {
+                if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(product => {
                         const stock = product.Stock ? product.Stock.quantity : 0;
                         html += `<tr>
@@ -219,21 +244,32 @@ $(document).ready(function() {
                             <td>${product.camera_model}</td>
                             <td>${product.description}</td>
                             <td>₱${parseFloat(product.sell_price).toFixed(2)}</td>
-                            <td>${product.condition}</td>
+                            <td>${product.condition || 'Good'}</td>
                             <td>${stock}</td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action" onclick="showProductForm(${product.item_id})"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteProduct(${product.item_id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-sm btn-info btn-action" onclick="showProductForm(${product.item_id})" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteProduct(${product.item_id})" title="Delete"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>`;
                     });
+                } else {
+                    html = '<tr><td colspan="8" class="text-center">No products found</td></tr>';
                 }
                 $('#productsTable tbody').html(html);
 
+                // Initialize DataTable
                 productsDataTable = $('#productsTable').DataTable({
                     "pageLength": 10,
-                    "order": [[0, 'desc']]
+                    "order": [[0, 'desc']],
+                    "language": {
+                        "emptyTable": "No products available"
+                    }
                 });
+            },
+            error: function(error) {
+                console.error('Load products error:', error);
+                Swal.fire('Error', 'Failed to load products', 'error');
+                $('#productsTable tbody').html('<tr><td colspan="8" class="text-center text-danger">Failed to load products</td></tr>');
             }
         });
     };
@@ -244,20 +280,25 @@ $(document).ready(function() {
             text: 'This action cannot be undone',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Delete'
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed) {
                 $.ajax({
                     method: 'DELETE',
                     url: `${url}api/v1/items/${id}`,
                     headers: getAuthHeader(),
-                    success: function() {
-                        Swal.fire('Deleted', 'Product deleted successfully', 'success').then(() => {
+                    dataType: 'json',
+                    success: function(data) {
+                        Swal.fire('Deleted!', 'Product deleted successfully', 'success').then(() => {
                             loadProducts();
                         });
                     },
-                    error: function() {
-                        Swal.fire('Error', 'Failed to delete product', 'error');
+                    error: function(error) {
+                        console.error('Delete product error:', error);
+                        const errorMsg = error.responseJSON?.error || 'Failed to delete product';
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
@@ -272,15 +313,18 @@ $(document).ready(function() {
             headers: getAuthHeader(),
             dataType: 'json',
             success: function(data) {
+                // Destroy existing DataTable if it exists
                 if ($.fn.DataTable.isDataTable('#ordersTable')) {
                     ordersDataTable.destroy();
                 }
 
                 let html = '';
-                if (data.rows) {
+                if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(order => {
                         const date = new Date(order.created_at).toLocaleDateString();
-                        const statusBadge = order.status === 'completed' ? 'badge-success' : order.status === 'pending' ? 'badge-warning' : 'badge-danger';
+                        const statusBadge = order.status === 'completed' ? 'badge-success' : 
+                                          order.status === 'pending' ? 'badge-warning' :
+                                          order.status === 'processing' ? 'badge-info' : 'badge-danger';
                         html += `<tr>
                             <td>#${order.id}</td>
                             <td>${order.User ? order.User.name : 'Unknown'}</td>
@@ -288,21 +332,28 @@ $(document).ready(function() {
                             <td><span class="badge ${statusBadge}">${order.status}</span></td>
                             <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action" onclick="editOrderStatus(${order.id}, '${order.status}')"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteOrder(${order.id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-sm btn-info btn-action" onclick="editOrderStatus(${order.id}, '${order.status}')" title="Edit Status"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteOrder(${order.id})" title="Delete"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>`;
                     });
+                } else {
+                    html = '<tr><td colspan="6" class="text-center">No orders found</td></tr>';
                 }
                 $('#ordersTable tbody').html(html);
 
+                // Initialize DataTable
                 ordersDataTable = $('#ordersTable').DataTable({
                     "pageLength": 10,
-                    "order": [[0, 'desc']]
+                    "order": [[0, 'desc']],
+                    "language": {
+                        "emptyTable": "No orders available"
+                    }
                 });
             },
-            error: function() {
-                $('#ordersTable tbody').html('<tr><td colspan="6" class="text-center">No orders found</td></tr>');
+            error: function(error) {
+                console.error('Load orders error:', error);
+                $('#ordersTable tbody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load orders</td></tr>');
             }
         });
     };
@@ -319,7 +370,8 @@ $(document).ready(function() {
             },
             inputValue: currentStatus,
             showCancelButton: true,
-            confirmButtonText: 'Update'
+            confirmButtonText: 'Update',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed && result.value) {
                 $.ajax({
@@ -328,13 +380,16 @@ $(document).ready(function() {
                     headers: getAuthHeader(),
                     data: JSON.stringify({status: result.value}),
                     contentType: 'application/json',
+                    dataType: 'json',
                     success: function() {
-                        Swal.fire('Success', 'Order status updated', 'success').then(() => {
+                        Swal.fire('Success!', 'Order status updated to: ' + result.value, 'success').then(() => {
                             loadOrders();
                         });
                     },
-                    error: function() {
-                        Swal.fire('Error', 'Failed to update order', 'error');
+                    error: function(error) {
+                        console.error('Update order error:', error);
+                        const errorMsg = error.responseJSON?.error || 'Failed to update order';
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
@@ -347,20 +402,25 @@ $(document).ready(function() {
             text: 'This action cannot be undone',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Delete'
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed) {
                 $.ajax({
                     method: 'DELETE',
                     url: `${url}api/v1/orders/${id}`,
                     headers: getAuthHeader(),
+                    dataType: 'json',
                     success: function() {
-                        Swal.fire('Deleted', 'Order deleted successfully', 'success').then(() => {
+                        Swal.fire('Deleted!', 'Order deleted successfully', 'success').then(() => {
                             loadOrders();
                         });
                     },
-                    error: function() {
-                        Swal.fire('Error', 'Failed to delete order', 'error');
+                    error: function(error) {
+                        console.error('Delete order error:', error);
+                        const errorMsg = error.responseJSON?.error || 'Failed to delete order';
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
@@ -375,15 +435,19 @@ $(document).ready(function() {
             headers: getAuthHeader(),
             dataType: 'json',
             success: function(data) {
+                // Destroy existing DataTable if it exists
                 if ($.fn.DataTable.isDataTable('#usersTable')) {
                     usersDataTable.destroy();
                 }
 
                 let html = '';
-                if (data.rows) {
+                if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(user => {
                         const lastLogin = user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never';
                         const statusBadge = user.is_active ? 'badge-success' : 'badge-danger';
+                        const buttonText = user.is_active ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check"></i>';
+                        const buttonClass = user.is_active ? 'btn-danger' : 'btn-success';
+                        
                         html += `<tr>
                             <td>${user.id}</td>
                             <td>${user.name}</td>
@@ -392,21 +456,28 @@ $(document).ready(function() {
                             <td><span class="badge ${statusBadge}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
                             <td>${lastLogin}</td>
                             <td>
-                                <button class="btn btn-sm btn-warning btn-action" onclick="changeUserRole(${user.id}, '${user.role}')"><i class="fas fa-key"></i> Role</button>
-                                <button class="btn btn-sm btn-${user.is_active ? 'danger' : 'success'} btn-action" onclick="toggleUserStatus(${user.id}, ${user.is_active})"><i class="fas fa-${user.is_active ? 'ban' : 'check'}"></i></button>
+                                <button class="btn btn-sm btn-warning btn-action" onclick="changeUserRole(${user.id}, '${user.role}')" title="Change Role"><i class="fas fa-key"></i></button>
+                                <button class="btn btn-sm ${buttonClass} btn-action" onclick="toggleUserStatus(${user.id}, ${user.is_active})" title="${user.is_active ? 'Deactivate' : 'Activate'}">${buttonText}</button>
                             </td>
                         </tr>`;
                     });
+                } else {
+                    html = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
                 }
                 $('#usersTable tbody').html(html);
 
+                // Initialize DataTable
                 usersDataTable = $('#usersTable').DataTable({
                     "pageLength": 10,
-                    "order": [[0, 'desc']]
+                    "order": [[0, 'desc']],
+                    "language": {
+                        "emptyTable": "No users available"
+                    }
                 });
             },
-            error: function() {
-                $('#usersTable tbody').html('<tr><td colspan="7" class="text-center">No users found</td></tr>');
+            error: function(error) {
+                console.error('Load users error:', error);
+                $('#usersTable tbody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load users</td></tr>');
             }
         });
     };
@@ -422,7 +493,8 @@ $(document).ready(function() {
             },
             inputValue: currentRole,
             showCancelButton: true,
-            confirmButtonText: 'Update'
+            confirmButtonText: 'Update',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed && result.value) {
                 $.ajax({
@@ -431,13 +503,16 @@ $(document).ready(function() {
                     headers: getAuthHeader(),
                     data: JSON.stringify({role: result.value}),
                     contentType: 'application/json',
+                    dataType: 'json',
                     success: function() {
-                        Swal.fire('Success', 'User role updated', 'success').then(() => {
+                        Swal.fire('Success!', 'User role updated to: ' + result.value, 'success').then(() => {
                             loadUsers();
                         });
                     },
                     error: function(error) {
-                        Swal.fire('Error', error.responseJSON?.error || 'Failed to update role', 'error');
+                        console.error('Update role error:', error);
+                        const errorMsg = error.responseJSON?.error || error.responseJSON?.message || 'Failed to update role';
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
@@ -453,7 +528,9 @@ $(document).ready(function() {
             text: `Are you sure you want to ${action} this user?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes'
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed) {
                 $.ajax({
@@ -461,13 +538,16 @@ $(document).ready(function() {
                     url: `${url}api/v1/users/${userId}/${endpoint}`,
                     headers: getAuthHeader(),
                     contentType: 'application/json',
+                    dataType: 'json',
                     success: function() {
-                        Swal.fire('Success', `User ${action}d successfully`, 'success').then(() => {
+                        Swal.fire('Success!', `User ${action}d successfully`, 'success').then(() => {
                             loadUsers();
                         });
                     },
                     error: function(error) {
-                        Swal.fire('Error', error.responseJSON?.error || `Failed to ${action} user`, 'error');
+                        console.error('Toggle user status error:', error);
+                        const errorMsg = error.responseJSON?.error || error.responseJSON?.message || `Failed to ${action} user`;
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
@@ -482,12 +562,13 @@ $(document).ready(function() {
             headers: getAuthHeader(),
             dataType: 'json',
             success: function(data) {
+                // Destroy existing DataTable if it exists
                 if ($.fn.DataTable.isDataTable('#stockTable')) {
                     stockDataTable.destroy();
                 }
 
                 let html = '';
-                if (data.rows) {
+                if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(item => {
                         const quantity = item.Stock ? item.Stock.quantity : 0;
                         const threshold = 5;
@@ -496,20 +577,30 @@ $(document).ready(function() {
 
                         html += `<tr>
                             <td>${item.camera_brand} ${item.camera_model}</td>
-                            <td>${quantity}</td>
+                            <td><span class="badge badge-primary">${quantity}</span></td>
                             <td>${threshold}</td>
-                            <td><span class="badge ${statusBadge}">${quantity <= threshold ? 'Low Stock' : 'In Stock'}</span></td>
+                            <td><span class="badge ${statusBadge}">${quantity === 0 ? 'Out of Stock' : quantity <= threshold ? 'Low Stock' : 'In Stock'}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-primary btn-action" onclick="updateStockQty(${item.item_id})"><i class="fas fa-plus"></i> Add Stock</button>
+                                <button class="btn btn-sm btn-primary btn-action" onclick="updateStockQty(${item.item_id})" title="Add Stock"><i class="fas fa-plus"></i></button>
                             </td>
                         </tr>`;
                     });
+                } else {
+                    html = '<tr><td colspan="5" class="text-center">No items found</td></tr>';
                 }
                 $('#stockTable tbody').html(html);
 
+                // Initialize DataTable
                 stockDataTable = $('#stockTable').DataTable({
-                    "pageLength": 10
+                    "pageLength": 10,
+                    "language": {
+                        "emptyTable": "No items available"
+                    }
                 });
+            },
+            error: function(error) {
+                console.error('Load stock error:', error);
+                $('#stockTable tbody').html('<tr><td colspan="5" class="text-center text-danger">Failed to load stock</td></tr>');
             }
         });
     };
@@ -524,37 +615,57 @@ $(document).ready(function() {
                 min: 1
             },
             showCancelButton: true,
-            confirmButtonText: 'Add'
+            confirmButtonText: 'Add',
+            allowOutsideClick: false,
+            didOpen: () => {
+                const inputElement = Swal.getInput();
+                inputElement.focus();
+            }
         }).then(result => {
-            if (result.isConfirmed && result.value) {
+            if (result.isConfirmed && result.value && result.value > 0) {
                 // Get current stock
                 $.ajax({
                     method: 'GET',
                     url: `${url}api/v1/items/${itemId}`,
                     headers: getAuthHeader(),
+                    dataType: 'json',
                     success: function(data) {
-                        const currentQty = data.result.Stock ? data.result.Stock.quantity : 0;
-                        const newQty = parseInt(currentQty) + parseInt(result.value);
+                        if (data.result) {
+                            const currentQty = data.result.Stock ? data.result.Stock.quantity : 0;
+                            const addQty = parseInt(result.value);
+                            const newQty = parseInt(currentQty) + addQty;
 
-                        $.ajax({
-                            method: 'PUT',
-                            url: `${url}api/v1/items/${itemId}`,
-                            headers: getAuthHeader(),
-                            data: JSON.stringify({
-                                camera_brand: data.result.camera_brand,
-                                camera_model: data.result.camera_model,
-                                description: data.result.description,
-                                cost_price: data.result.cost_price,
-                                sell_price: data.result.sell_price,
-                                quantity: newQty
-                            }),
-                            contentType: 'application/json',
-                            success: function() {
-                                Swal.fire('Success', 'Stock updated', 'success').then(() => {
-                                    loadStock();
-                                });
-                            }
-                        });
+                            // Update stock
+                            $.ajax({
+                                method: 'PUT',
+                                url: `${url}api/v1/items/${itemId}`,
+                                headers: getAuthHeader(),
+                                data: JSON.stringify({
+                                    camera_brand: data.result.camera_brand,
+                                    camera_model: data.result.camera_model,
+                                    description: data.result.description,
+                                    condition: data.result.condition,
+                                    cost_price: data.result.cost_price,
+                                    sell_price: data.result.sell_price,
+                                    quantity: newQty
+                                }),
+                                contentType: 'application/json',
+                                dataType: 'json',
+                                success: function() {
+                                    Swal.fire('Success', `Added ${addQty} units. New stock: ${newQty}`, 'success').then(() => {
+                                        loadStock();
+                                    });
+                                },
+                                error: function(error) {
+                                    console.error('Update stock error:', error);
+                                    Swal.fire('Error', 'Failed to update stock', 'error');
+                                }
+                            });
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Get item error:', error);
+                        Swal.fire('Error', 'Failed to retrieve item details', 'error');
                     }
                 });
             }
@@ -568,7 +679,9 @@ $(document).ready(function() {
             text: 'Are you sure you want to logout?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Logout'
+            confirmButtonText: 'Yes, Logout',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed) {
                 sessionStorage.clear();
