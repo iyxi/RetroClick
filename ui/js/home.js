@@ -31,31 +31,47 @@ $(document).ready(function () {
         return true;
     };
 
+    const params = new URLSearchParams(window.location.search);
+    const brandFilter = params.get('brand')?.trim().toLowerCase();
+
     $.ajax({
         method: "GET",
-        url: `${url}api/v1/items`,
+        url: `${url}api/v1/public/items`,
         dataType: 'json',
         success: function (data) {
             // console.log(data);
             $("#items").empty();
-            //     // Start a row
+
+            const items = data.rows.filter(item => {
+                if (!brandFilter) return true;
+                return String(item.camera_brand || '').trim().toLowerCase() === brandFilter;
+            });
+
+            if (brandFilter && items.length === 0) {
+                $('#items').html(`<p class="text-center mt-4">No items found for brand <strong>${brandFilter}</strong>.</p>`);
+                return;
+            }
+
             let row;
-            $.each(data.rows, function (key, value) {
+            $.each(items, function (key, value) {
                 if (key % 4 === 0) {
                     row = $('<div class="row"></div>');
                     $("#items").append(row);
                 }
                 // console.log(key);
-                var item = `<div class="col-md-3 mb-4">
+                const stockQty = value.quantity ?? 0;
+                const imagePath = value.img_path ? `${url}${encodeURI(value.img_path)}` : 'https://via.placeholder.com/400x250?text=No+Image';
+                const item = `<div class="col-md-3 mb-4">
                 <div class="card h-100">
-                <img src="${url}${value.img_path}" class="card-img-top" alt="${value.description}" >
+                <img src="${imagePath}" class="card-img-top" alt="${value.description}" >
                 <div class="card-body">
-                <h5 class="card-title">${value.description}</h5>
-                <p class="card-text">₱ ${value.sell_price}</p>
+                <h5 class="card-title">${value.camera_model || value.description}</h5>
+                <p class="card-text text-uppercase small text-muted mb-2">${value.camera_brand || 'Vintage'}</p>
+                <p class="card-text">₱ ${parseFloat(value.sell_price).toFixed(2)}</p>
                 <p class="card-text">
-                <small class="text-muted">Stock: ${value.quantity ?? 0}</small>
+                <small class="text-muted">Stock: ${stockQty}</small>
                 </p>
-                <a href="#!" class="btn btn-primary show-details" role="button" data-id="${value.item_id}" data-description="${value.description}" data-price="${value.sell_price}" data-image="${value.img_path}" data-stock="${value.quantity ?? 0}">Details</a>
+                <a href="#!" class="btn btn-primary show-details" role="button" data-id="${value.item_id}" data-description="${value.description}" data-price="${value.sell_price}" data-image="${imagePath}" data-stock="${stockQty}">Add to Cart</a>
                 </div>
                 </div>
                 </div>`;
@@ -93,7 +109,7 @@ $(document).ready(function () {
 
                 $('#productDetailsModalLabel').text(description);
                 $('#productDetailsModalBody').html(`
-                        <img src="${url}${image}" class="img-fluid mb-3" style="max-height:200px;">
+                        <img src="${image}" class="img-fluid mb-3" style="max-height:200px;">
                         <p id="price">Price: ₱<strong>${price}</strong></p>
                         <p>Stock: ${stock}</p>
                         <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
@@ -154,43 +170,6 @@ $(document).ready(function () {
 
     });
 
-    $(document).on('click', '.btn-cart', function () {
-        if (!requireLogin()) {
-            return;
-        }
-
-        const id = parseInt($(this).data('id'));
-        const description = $(this).data('description');
-        const price = parseFloat($(this).data('price')) || 0;
-        const image = $(this).data('image');
-        const stock = parseInt($(this).data('stock')) || 0;
-
-        if (stock <= 0) {
-            Swal.fire('Out of Stock', 'This item is not available.', 'warning');
-            return;
-        }
-
-        let cart = getCart();
-        let existing = cart.find(item => item.item_id == id);
-        if (existing) {
-            existing.quantity += 1;
-        } else {
-            cart.push({
-                item_id: id,
-                description: description,
-                price: price,
-                image: image,
-                stock: stock,
-                quantity: 1
-            });
-        }
-        saveCart(cart);
-
-        itemCount++;
-        $('#itemCount').text(itemCount).css('display', 'block');
-        Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
-    });
-
-    $("#home").load("header.html")
+    loadSharedHeader();
 
 })

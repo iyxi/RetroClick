@@ -135,14 +135,16 @@ $(document).ready(function () {
             url: `${url}/api/v1/items/${id}`,
             dataType: "json",
             success: function (data) {
-                const { description, item_id, stock, cost_price, sell_price, quantity } = data.result[0]
+                const { description, item_id, cost_price, sell_price, quantity, img_path } = data.result;
 
-                console.log(data.result[0]);
+                console.log(data.result);
                 $('#desc').val(description)
                 $('#sell').val(sell_price)
                 $('#cost').val(cost_price)
                 $('#qty').val(quantity)
-                $("#iform").append(`<img src="${url}/${data.img_path}" width='200px', height='200px' id="itemImage"   />`)
+                if (img_path) {
+                    $("#iform").append(`<img src="${url}${img_path}" width='200px' height='200px' id="itemImage" />`)
+                }
 
             },
             error: function (error) {

@@ -2,8 +2,8 @@
 -- Date: 2026-06-13
 -- Target: MySQL 8+
 -- Notes:
--- 1) Keeps existing table names used by current NodeJS code: users, customer, item, stock, orderinfo, orderline.
--- 2) Adds missing tables/features required by project specs (roles, tokens, payments, receipt, restock logs, status history, notifications).
+-- 1) Keeps existing table names used by current NodeJS code: users, customer, item, orderinfo.
+-- 2) Adds missing tables/features required by project specs (roles, tokens, payments, receipt, status history, notifications).
 
 SET NAMES utf8mb4;
 SET time_zone = '+08:00';
@@ -19,13 +19,9 @@ DROP TABLE IF EXISTS email_notifications;
 DROP TABLE IF EXISTS order_status_history;
 DROP TABLE IF EXISTS receipts;
 DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS orderline;
 DROP TABLE IF EXISTS orderinfo;
 DROP TABLE IF EXISTS cart_item;
 DROP TABLE IF EXISTS cart;
-DROP TABLE IF EXISTS stock_restock;
-DROP TABLE IF EXISTS stock;
-DROP TABLE IF EXISTS item_images;
 DROP TABLE IF EXISTS item;
 DROP TABLE IF EXISTS customer;
 DROP TABLE IF EXISTS users;
@@ -96,6 +92,8 @@ CREATE TABLE item (
   cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   sell_price DECIMAL(12,2) NOT NULL,
   img_path VARCHAR(255) NULL,
+  quantity INT NOT NULL DEFAULT 0,
+  low_stock_threshold INT NOT NULL DEFAULT 5,
 
   -- Functional requirements
   camera_brand VARCHAR(120) NOT NULL,
@@ -115,65 +113,10 @@ CREATE TABLE item (
   FULLTEXT KEY ftx_item_search (camera_brand, camera_model, description)
 ) ENGINE=InnoDB;
 
--- Multiple image support (MP3 multiple file uploads)
-CREATE TABLE item_images (
-  image_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  item_id INT UNSIGNED NOT NULL,
-  image_path VARCHAR(255) NOT NULL,
-  is_primary TINYINT(1) NOT NULL DEFAULT 0,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  PRIMARY KEY (image_id),
-  KEY idx_item_images_item (item_id),
-
-  CONSTRAINT fk_item_images_item
-    FOREIGN KEY (item_id) REFERENCES item(item_id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
 -- =========================
 -- 4) INVENTORY
 -- =========================
-CREATE TABLE stock (
-  item_id INT UNSIGNED NOT NULL,
-  quantity INT NOT NULL DEFAULT 0,
-  low_stock_threshold INT NOT NULL DEFAULT 5,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-  PRIMARY KEY (item_id),
-  KEY idx_stock_quantity (quantity),
-
-  CONSTRAINT chk_stock_quantity CHECK (quantity >= 0),
-  CONSTRAINT fk_stock_item
-    FOREIGN KEY (item_id) REFERENCES item(item_id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- Restock log (required)
-CREATE TABLE stock_restock (
-  restock_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  item_id INT UNSIGNED NOT NULL,
-  quantity_added INT NOT NULL,
-  restock_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  notes VARCHAR(255) NULL,
-  restocked_by INT UNSIGNED NULL,
-
-  PRIMARY KEY (restock_id),
-  KEY idx_restock_item_date (item_id, restock_date),
-
-  CONSTRAINT chk_restock_qty CHECK (quantity_added > 0),
-  CONSTRAINT fk_restock_item
-    FOREIGN KEY (item_id) REFERENCES item(item_id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT fk_restock_user
-    FOREIGN KEY (restocked_by) REFERENCES users(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE
-) ENGINE=InnoDB;
+-- Inventory quantity and low stock threshold are now stored on the item table.
 
 -- =========================
 -- 5) CART
@@ -231,6 +174,7 @@ CREATE TABLE orderinfo (
   shipping DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  order_items JSON NOT NULL,
 
   status ENUM('Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
   payment_method ENUM('GCash', 'Card', 'COD') NULL,
@@ -244,31 +188,6 @@ CREATE TABLE orderinfo (
 
   CONSTRAINT fk_order_customer
     FOREIGN KEY (customer_id) REFERENCES customer(customer_id)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-CREATE TABLE orderline (
-  orderline_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  orderinfo_id BIGINT UNSIGNED NOT NULL,
-  item_id INT UNSIGNED NOT NULL,
-  quantity INT NOT NULL,
-  unit_price DECIMAL(12,2) NOT NULL,
-
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  PRIMARY KEY (orderline_id),
-  UNIQUE KEY uq_orderline_order_item (orderinfo_id, item_id),
-  KEY idx_orderline_item (item_id),
-
-  CONSTRAINT chk_orderline_qty CHECK (quantity > 0),
-  CONSTRAINT chk_orderline_unit_price CHECK (unit_price >= 0),
-  CONSTRAINT fk_orderline_order
-    FOREIGN KEY (orderinfo_id) REFERENCES orderinfo(orderinfo_id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT fk_orderline_item
-    FOREIGN KEY (item_id) REFERENCES item(item_id)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
@@ -385,58 +304,6 @@ CREATE TABLE email_notifications (
 -- =========================
 DELIMITER $$
 
--- Keep orderline.unit_price consistent with current item price on insert.
-CREATE TRIGGER trg_orderline_before_insert
-BEFORE INSERT ON orderline
-FOR EACH ROW
-BEGIN
-  DECLARE v_price DECIMAL(12,2);
-  SELECT sell_price INTO v_price
-  FROM item
-  WHERE item_id = NEW.item_id;
-
-  IF v_price IS NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid item_id in orderline';
-  END IF;
-
-  IF NEW.unit_price IS NULL OR NEW.unit_price <= 0 THEN
-    SET NEW.unit_price = v_price;
-  END IF;
-END$$
-
--- Deduct stock when orderline is added.
-CREATE TRIGGER trg_orderline_after_insert
-AFTER INSERT ON orderline
-FOR EACH ROW
-BEGIN
-  UPDATE stock
-  SET quantity = quantity - NEW.quantity
-  WHERE item_id = NEW.item_id;
-
-  IF (SELECT quantity FROM stock WHERE item_id = NEW.item_id) < 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient stock';
-  END IF;
-END$$
-
--- Update order totals after orderline insert.
-CREATE TRIGGER trg_orderline_after_insert_total
-AFTER INSERT ON orderline
-FOR EACH ROW
-BEGIN
-  UPDATE orderinfo oi
-  SET oi.subtotal = (
-      SELECT IFNULL(SUM(ol.quantity * ol.unit_price), 0)
-      FROM orderline ol
-      WHERE ol.orderinfo_id = NEW.orderinfo_id
-    ),
-    oi.total_amount = (
-      SELECT IFNULL(SUM(ol.quantity * ol.unit_price), 0)
-      FROM orderline ol
-      WHERE ol.orderinfo_id = NEW.orderinfo_id
-    ) + oi.shipping
-  WHERE oi.orderinfo_id = NEW.orderinfo_id;
-END$$
-
 -- Automatically log order status changes.
 CREATE TRIGGER trg_orderinfo_status_history
 AFTER UPDATE ON orderinfo
@@ -454,29 +321,6 @@ DELIMITER ;
 -- 10) STORED PROCEDURES
 -- =========================
 DELIMITER $$
-
-CREATE PROCEDURE sp_restock_item(
-  IN p_item_id INT UNSIGNED,
-  IN p_added_qty INT,
-  IN p_restocked_by INT UNSIGNED,
-  IN p_notes VARCHAR(255)
-)
-BEGIN
-  IF p_added_qty <= 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Restock quantity must be > 0';
-  END IF;
-
-  UPDATE stock
-  SET quantity = quantity + p_added_qty
-  WHERE item_id = p_item_id;
-
-  IF ROW_COUNT() = 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock row does not exist for item';
-  END IF;
-
-  INSERT INTO stock_restock (item_id, quantity_added, restock_date, notes, restocked_by)
-  VALUES (p_item_id, p_added_qty, CURRENT_TIMESTAMP, p_notes, p_restocked_by);
-END$$
 
 CREATE PROCEDURE sp_update_order_status(
   IN p_orderinfo_id BIGINT UNSIGNED,
@@ -528,14 +372,13 @@ SELECT
   i.camera_brand,
   i.camera_model,
   i.description,
-  s.quantity,
-  s.low_stock_threshold,
-  CASE WHEN s.quantity <= s.low_stock_threshold THEN 1 ELSE 0 END AS is_low_stock,
+  i.quantity,
+  i.low_stock_threshold,
+  CASE WHEN i.quantity <= i.low_stock_threshold THEN 1 ELSE 0 END AS is_low_stock,
   i.is_visible,
   i.is_available,
   i.sell_price
-FROM item i
-LEFT JOIN stock s ON s.item_id = i.item_id;
+FROM item i;
 
 CREATE OR REPLACE VIEW vw_order_customer_details AS
 SELECT
@@ -554,15 +397,25 @@ INNER JOIN customer c ON c.customer_id = oi.customer_id
 INNER JOIN users u ON u.id = c.user_id;
 
 CREATE OR REPLACE VIEW vw_sales_monthly AS
+WITH RECURSIVE seq AS (
+  SELECT 0 AS n
+  UNION ALL
+  SELECT n + 1 FROM seq WHERE n < 99
+)
 SELECT
   YEAR(oi.date_placed) AS sales_year,
   MONTH(oi.date_placed) AS sales_month,
   MONTHNAME(oi.date_placed) AS month_name,
-  ROUND(SUM(ol.quantity * ol.unit_price), 2) AS gross_sales,
-  SUM(ol.quantity) AS units_sold,
+  ROUND(SUM(
+    CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].quantity'))) AS DECIMAL(12,2))
+    * CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].unit_price'))) AS DECIMAL(12,2))
+  ), 2) AS gross_sales,
+  SUM(
+    CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].quantity'))) AS UNSIGNED)
+  ) AS units_sold,
   COUNT(DISTINCT oi.orderinfo_id) AS order_count
 FROM orderinfo oi
-INNER JOIN orderline ol ON ol.orderinfo_id = oi.orderinfo_id
+JOIN seq ON seq.n < JSON_LENGTH(oi.order_items)
 WHERE oi.status IN ('Processing', 'Shipped', 'Completed')
 GROUP BY YEAR(oi.date_placed), MONTH(oi.date_placed), MONTHNAME(oi.date_placed)
 ORDER BY sales_year, sales_month;
@@ -573,9 +426,9 @@ ORDER BY sales_year, sales_month;
 -- Password hash below is only placeholder text. Replace with bcrypt hash from your app.
 INSERT INTO users (name, email, password, role, is_active)
 VALUES
-('System Admin', 'admin@retroclick.local', '$2b$10$replace_this_with_real_bcrypt_hash', 'admin', 1),
-('Store Manager', 'manager@retroclick.local', '$2b$10$replace_this_with_real_bcrypt_hash', 'manager', 1),
-('Sample Customer', 'customer@retroclick.local', '$2b$10$replace_this_with_real_bcrypt_hash', 'customer', 1);
+('System Admin', 'admin@retroclick.com', '$2b$10$S1FPVV9vIL6LFswKnNxvPutjDjBtGxAd.bRugKZUtf0L4TsQM44dO', 'admin', 1),
+('Sample Customer', 'iyxi@gmail.com', '$2b$10$qSMoOwoMaCc7DzhWEvdA6uQCri2Sa0fT//zxh/PKYsLr8e55iLiDy', 'customer', 1),
+('Sample Customer', 'riel@gmail.com', '$2b$10$vKJoTT3/DzXXZXirN0yQP.fC9NVa.SdYzS/6I3c9wXq5EOxwdL8t2', 'customer', 1);
 
 -- Optional sample items.
 INSERT INTO item (
@@ -583,6 +436,8 @@ INSERT INTO item (
   cost_price,
   sell_price,
   img_path,
+  quantity,
+  low_stock_threshold,
   camera_brand,
   camera_model,
   `condition`,
@@ -591,22 +446,9 @@ INSERT INTO item (
   is_available
 )
 VALUES
-('Compact 35mm point-and-shoot camera', 2500.00, 3999.00, 'images/items/canon-a1-main.jpg', 'Canon', 'A-1', 'Good', 1978, 1, 1),
-('SLR film camera body only', 3400.00, 4999.00, 'images/items/nikon-fm2-main.jpg', 'Nikon', 'FM2', 'Like New', 1982, 1, 1),
-('Rangefinder camera with 50mm lens', 4700.00, 6999.00, 'images/items/olympus-35sp-main.jpg', 'Olympus', '35 SP', 'Fair', 1969, 1, 1);
-
-INSERT INTO stock (item_id, quantity, low_stock_threshold)
-VALUES
-(1, 8, 3),
-(2, 5, 3),
-(3, 2, 2);
-
-INSERT INTO item_images (item_id, image_path, is_primary, sort_order)
-VALUES
-(1, 'images/items/canon-a1-main.jpg', 1, 1),
-(1, 'images/items/canon-a1-side.jpg', 0, 2),
-(2, 'images/items/nikon-fm2-main.jpg', 1, 1),
-(3, 'images/items/olympus-35sp-main.jpg', 1, 1);
+('Compact 35mm point-and-shoot camera', 2500.00, 3999.00, 'images/items/canon-a1-main.jpg', 8, 3, 'Canon', 'A-1', 'Good', 1978, 1, 1),
+('SLR film camera body only', 3400.00, 4999.00, 'images/items/nikon-fm2-main.jpg', 5, 3, 'Nikon', 'FM2', 'Like New', 1982, 1, 1),
+('Rangefinder camera with 50mm lens', 4700.00, 6999.00, 'images/items/olympus-35sp-main.jpg', 'Olympus', '35 SP', 'Fair', 1969, 2, 2, 1, 1);
 
 -- Additional sample items to match front-end examples
 INSERT INTO item (
@@ -614,6 +456,8 @@ INSERT INTO item (
   cost_price,
   sell_price,
   img_path,
+  quantity,
+  low_stock_threshold,
   camera_brand,
   camera_model,
   `condition`,
@@ -622,21 +466,9 @@ INSERT INTO item (
   is_available
 )
 VALUES
-('Professional rangefinder camera body', 12500.00, 18500.00, 'images/items/leica-m6-main.jpg', 'Leica', 'M6', 'Like New', 1984, 1, 1),
-('Classic SLR camera body', 4200.00, 6800.00, 'images/items/pentax-k1000-main.jpg', 'Pentax', 'K1000', 'Good', 1976, 1, 1),
-('Manual focus SLR with 50mm lens', 5100.00, 7450.00, 'images/items/minolta-srt101-main.jpg', 'Minolta', 'SRT 101', 'Good', 1972, 1, 1);
-
-INSERT INTO stock (item_id, quantity, low_stock_threshold)
-VALUES
-(4, 4, 2),
-(5, 6, 2),
-(6, 5, 2);
-
-INSERT INTO item_images (item_id, image_path, is_primary, sort_order)
-VALUES
-(4, 'images/items/leica-m6-main.jpg', 1, 1),
-(5, 'images/items/pentax-k1000-main.jpg', 1, 1),
-(6, 'images/items/minolta-srt101-main.jpg', 1, 1);
+('Professional rangefinder camera body', 12500.00, 18500.00, 'images/items/leica-m6-main.jpg', 4, 2, 'Leica', 'M6', 'Like New', 1984, 1, 1),
+('Classic SLR camera body', 4200.00, 6800.00, 'images/items/pentax-k1000-main.jpg', 6, 2, 'Pentax', 'K1000', 'Good', 1976, 1, 1),
+('Manual focus SLR with 50mm lens', 5100.00, 7450.00, 'images/items/minolta-srt101-main.jpg', 5, 2, 'Minolta', 'SRT 101', 'Good', 1972, 1, 1);
 
 -- Example customer profile for Sample Customer (user_id = 3 in fresh DB).
 INSERT INTO customer (user_id, fname, lname, addressline, zipcode, phone)

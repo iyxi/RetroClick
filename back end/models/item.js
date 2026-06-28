@@ -39,6 +39,16 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DATEONLY,
             allowNull: true
         },
+        quantity: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
+        low_stock_threshold: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 5
+        },
         is_visible: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

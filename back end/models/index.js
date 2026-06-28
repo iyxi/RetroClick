@@ -1,6 +1,5 @@
 const sequelize = require('../config/database');
 const Item = require('./item');
-const Stock = require('./stock');
 const User = require('./user');
 const Customer = require('./customer');
 const ItemImage = require('./itemImage');
@@ -10,14 +9,12 @@ const Payment = require('./payment');
 const Receipt = require('./receipt');
 const Cart = require('./cart');
 const CartItem = require('./cartItem');
-const StockRestock = require('./stockRestock');
 const OrderStatusHistory = require('./orderStatusHistory');
 const EmailNotification = require('./emailNotification');
 
 // Initialize models
 const db = {};
 db.Item = Item(sequelize, require('sequelize').DataTypes);
-db.Stock = Stock(sequelize, require('sequelize').DataTypes);
 db.User = User(sequelize, require('sequelize').DataTypes);
 db.Customer = Customer(sequelize, require('sequelize').DataTypes);
 db.ItemImage = ItemImage(sequelize, require('sequelize').DataTypes);
@@ -27,32 +24,15 @@ db.Payment = Payment(sequelize, require('sequelize').DataTypes);
 db.Receipt = Receipt(sequelize, require('sequelize').DataTypes);
 db.Cart = Cart(sequelize, require('sequelize').DataTypes);
 db.CartItem = CartItem(sequelize, require('sequelize').DataTypes);
-db.StockRestock = StockRestock(sequelize, require('sequelize').DataTypes);
 db.OrderStatusHistory = OrderStatusHistory(sequelize, require('sequelize').DataTypes);
 db.EmailNotification = EmailNotification(sequelize, require('sequelize').DataTypes);
 
 // ========== PRODUCTS & INVENTORY ==========
-db.Item.hasOne(db.Stock, {
-    foreignKey: 'item_id',
-    onDelete: 'CASCADE'
-});
-db.Stock.belongsTo(db.Item, {
-    foreignKey: 'item_id'
-});
-
 db.Item.hasMany(db.ItemImage, {
     foreignKey: 'item_id',
     onDelete: 'CASCADE'
 });
 db.ItemImage.belongsTo(db.Item, {
-    foreignKey: 'item_id'
-});
-
-db.Item.hasMany(db.StockRestock, {
-    foreignKey: 'item_id',
-    onDelete: 'CASCADE'
-});
-db.StockRestock.belongsTo(db.Item, {
     foreignKey: 'item_id'
 });
 
@@ -63,14 +43,6 @@ db.User.hasOne(db.Customer, {
 });
 db.Customer.belongsTo(db.User, {
     foreignKey: 'user_id'
-});
-
-db.User.hasMany(db.StockRestock, {
-    foreignKey: 'restocked_by',
-    onDelete: 'SET NULL'
-});
-db.StockRestock.belongsTo(db.User, {
-    foreignKey: 'restocked_by'
 });
 
 // ========== CARTS ==========

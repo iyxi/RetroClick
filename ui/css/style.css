@@ -617,6 +617,9 @@ textarea:focus {
 
 .product-body {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - 250px);
 }
 
 .product-brand,
@@ -632,21 +635,66 @@ textarea:focus {
   font-family: var(--font-body);
 }
 
+.product-brand {
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
 .product-title {
   font-family: var(--font-heading);
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
+}
+
+.product-condition,
+.product-stock,
+.product-price {
+  margin-bottom: 0.5rem;
 }
 
 .product-price {
   font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .product-condition {
   background: rgba(157, 145, 103, 0.2) !important;
   color: var(--ink) !important;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+}
+
+.product-stock {
+  color: var(--ink);
+}
+
+.product-actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
 }
 
 .product-actions button {
   transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+  flex: 1 1 48%;
+}
+
+.product-actions .btn-details {
+  min-width: 110px;
+}
+
+.product-actions .btn-cart {
+  min-width: 120px;
 }
 
 .category-card {
@@ -745,7 +793,7 @@ textarea:focus {
    FOOTER
    ============================================================ */
 footer {
-  background: linear-gradient(135deg, var(--mahogany), var(--mahogany-2)) !important;
+  background: linear-gradient(135deg, #2f0f09, #4d1f14) !important;
   color: var(--cream-deep) !important;
   font-family: var(--font-body);
   border-top: 4px solid var(--brass);
@@ -753,14 +801,20 @@ footer {
 }
 
 footer h5 {
-  color: var(--brass-light) !important;
+  color: #f9df9e !important;
   font-family: var(--font-heading);
+  margin-bottom: 1rem;
 }
 
-footer a,
-.footer-section a,
-.footer-bottom {
+.footer-section p,
+.footer-section li,
+.footer-bottom,
+footer a {
   color: var(--cream-deep) !important;
+}
+
+footer a {
+  text-decoration: none;
 }
 
 footer a:hover {
@@ -772,13 +826,17 @@ footer a:hover {
   padding-left: 0;
 }
 
+.footer-section li {
+  margin-bottom: 0.65rem;
+}
+
 .footer-bottom {
-  border-top: 1px solid rgba(232, 201, 122, 0.25);
+  border-top: 1px solid rgba(232, 201, 122, 0.35);
   margin-top: 2rem;
   padding-top: 1.2rem;
   text-align: center;
-  font-size: .85rem;
-  opacity: .85;
+  font-size: .9rem;
+  opacity: 1;
 }
 
 /* ============================================================
@@ -1033,6 +1091,28 @@ footer a:hover {
 
 .card:hover {
   transform: translateY(-3px);
+}
+
+.card.h-100 {
+  display: flex;
+  flex-direction: column;
+}
+
+.card.h-100 .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.card.h-100 .card-body .btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.card.h-100 .card-title,
+.card.h-100 .card-text {
+  margin-bottom: 0.35rem;
 }
 
 .stat-card {

@@ -1,30 +1,39 @@
 const db = require('../models');
 const Item = db.Item;
-const Stock = db.Stock;
 const ItemImage = db.ItemImage;
 
-// Get all items with stock and images
+// Get all items with images
 exports.getAllItems = async (req, res) => {
     try {
         const items = await Item.findAll({
             raw: true,
             order: [['created_at', 'DESC']]
         });
-        
-        // Fetch stock separately for each item
-        const itemsWithStock = await Promise.all(items.map(async (item) => {
-            const stock = await Stock.findOne({ where: { item_id: item.item_id }, raw: true });
-            return { ...item, Stock: stock };
-        }));
-        
-        return res.status(200).json({ rows: itemsWithStock, success: true });
+
+        return res.status(200).json({ rows: items, success: true });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching items', details: error.message });
     }
 };
 
-// Get single item with stock
+// Public items for storefront (only visible and available)
+exports.getPublicItems = async (req, res) => {
+    try {
+        const items = await Item.findAll({
+            raw: true,
+            where: { is_visible: true, is_available: true },
+            order: [['created_at', 'DESC']]
+        });
+
+        return res.status(200).json({ rows: items, success: true });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error fetching public items', details: error.message });
+    }
+};
+
+// Get single item
 exports.getSingleItem = async (req, res) => {
     try {
         const item = await Item.findByPk(req.params.id, { raw: true });
@@ -32,19 +41,15 @@ exports.getSingleItem = async (req, res) => {
         if (!item) {
             return res.status(404).json({ success: false, message: 'Item not found' });
         }
-        
-        // Fetch stock separately
-        const stock = await Stock.findOne({ where: { item_id: item.item_id }, raw: true });
-        const itemWithStock = { ...item, Stock: stock };
 
-        return res.status(200).json({ success: true, result: itemWithStock });
+        return res.status(200).json({ success: true, result: item });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching item', details: error.message });
     }
 };
 
-// Create item with stock and images
+// Create item with images and quantity
 exports.createItem = async (req, res, next) => {
     try {
         const { 
@@ -57,7 +62,8 @@ exports.createItem = async (req, res, next) => {
             condition,
             year_released,
             is_visible,
-            is_available
+            is_available,
+            low_stock_threshold
         } = req.body;
 
         let imagePath = req.file?.path.replace(/\\/g, "/");
@@ -75,14 +81,10 @@ exports.createItem = async (req, res, next) => {
             condition: condition || 'Good',
             year_released,
             img_path: imagePath,
+            quantity: quantity !== undefined ? quantity : 0,
+            low_stock_threshold: low_stock_threshold !== undefined ? low_stock_threshold : 5,
             is_visible: is_visible !== undefined ? is_visible : true,
             is_available: is_available !== undefined ? is_available : true
-        });
-
-        // Create stock record
-        await Stock.create({
-            item_id: item.item_id,
-            quantity: quantity || 0
         });
 
         // Create image record if image exists
@@ -120,7 +122,8 @@ exports.updateItem = async (req, res, next) => {
             condition,
             year_released,
             is_visible,
-            is_available
+            is_available,
+            low_stock_threshold
         } = req.body;
 
         let imagePath = req.file?.path.replace(/\\/g, "/");
@@ -137,6 +140,8 @@ exports.updateItem = async (req, res, next) => {
             camera_model,
             condition: condition || 'Good',
             year_released,
+            quantity: quantity !== undefined ? quantity : undefined,
+            low_stock_threshold: low_stock_threshold !== undefined ? low_stock_threshold : undefined,
             is_visible: is_visible !== undefined ? is_visible : true,
             is_available: is_available !== undefined ? is_available : true
         };
@@ -145,11 +150,9 @@ exports.updateItem = async (req, res, next) => {
             updateData.img_path = imagePath;
         }
 
-        await Item.update(updateData, { where: { item_id: id } });
+        Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-        if (quantity !== undefined) {
-            await Stock.update({ quantity }, { where: { item_id: id } });
-        }
+        await Item.update(updateData, { where: { item_id: id } });
 
         return res.status(200).json({ 
             success: true,
@@ -161,16 +164,47 @@ exports.updateItem = async (req, res, next) => {
     }
 };
 
+// Archive item
+exports.archiveItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await Item.findByPk(id);
+        if (!item) {
+            return res.status(404).json({ success: false, error: 'Item not found' });
+        }
+
+        await Item.update({ is_visible: false }, { where: { item_id: id } });
+        return res.status(200).json({ success: true, message: 'Product archived successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error archiving item', details: error.message });
+    }
+};
+
+// Restore item
+exports.restoreItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await Item.findByPk(id);
+        if (!item) {
+            return res.status(404).json({ success: false, error: 'Item not found' });
+        }
+
+        await Item.update({ is_visible: true }, { where: { item_id: id } });
+        return res.status(200).json({ success: true, message: 'Product restored successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error restoring item', details: error.message });
+    }
+};
+
 // Delete item
 exports.deleteItem = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Delete related images
+            // Delete related images
         await ItemImage.destroy({ where: { item_id: id } });
-        
-        // Delete stock
-        await Stock.destroy({ where: { item_id: id } });
         
         // Delete item
         await Item.destroy({ where: { item_id: id } });

@@ -39,6 +39,19 @@ $(document).ready(function() {
     // Initialize DataTables
     let productsDataTable, ordersDataTable, usersDataTable, stockDataTable;
 
+    // Product button delegation
+    $('#productsTable').on('click', 'button.btn-edit', function(e) {
+        e.preventDefault();
+        showProductForm($(this).data('id'));
+    });
+
+    $('#productsTable').on('click', 'button.btn-visibility', function(e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        const visible = $(this).data('visible') === true || $(this).data('visible') === 'true';
+        toggleProductVisibility(id, visible);
+    });
+
     // Load dashboard stats
     const loadDashboard = () => {
         $.ajax({
@@ -125,35 +138,69 @@ $(document).ready(function() {
     };
 
     // PRODUCT MANAGEMENT
-    window.showProductForm = function(id = null) {
-        if (id) {
-            $.ajax({
-                method: 'GET',
-                url: `${url}api/v1/items/${id}`,
-                headers: getAuthHeader(),
-                dataType: 'json',
-                success: function(data) {
-                    if (data.result) {
-                        $('#productId').val(data.result.item_id);
-                        $('#pbrand').val(data.result.camera_brand);
-                        $('#pmodel').val(data.result.camera_model);
-                        $('#pdesc').val(data.result.description);
-                        $('#pcondition').val(data.result.condition);
-                        $('#pcost').val(data.result.cost_price);
-                        $('#psell').val(data.result.sell_price);
-                        $('#pqty').val(data.result.Stock ? data.result.Stock.quantity : 0);
-                        $('#pyear').val(data.result.year_released);
-                        $('#productForm').show();
-                        $('html, body').animate({scrollTop: $('#productForm').offset().top}, 'smooth');
-                    }
-                }
-            });
-        } else {
-            $('#pForm')[0].reset();
-            $('#productId').val('');
-            $('#productForm').show();
-            $('html, body').animate({scrollTop: $('#productForm').offset().top}, 'smooth');
+    window.showAddProductForm = function() {
+        $('#productFormTitle').text('Add Product');
+        $('#pForm')[0].reset();
+        $('#productId').val('');
+        $('#productForm').show();
+        $('html, body').animate({scrollTop: $('#productForm').offset().top}, 'smooth');
+    };
+
+    window.showEditProductForm = function(el, id) {
+        // support old signature showEditProductForm(id)
+        if (typeof el === 'number' || (typeof el === 'string' && id === undefined)) {
+            id = el;
+            el = null;
         }
+
+        $('#productFormTitle').text('Edit Product');
+        $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/items/${id}`,
+            headers: getAuthHeader(),
+            dataType: 'json',
+            success: function(data) {
+                if (data.result) {
+                    $('#productId').val(data.result.item_id);
+                    $('#pbrand').val(data.result.camera_brand);
+                    $('#pmodel').val(data.result.camera_model);
+                    $('#pdesc').val(data.result.description);
+                    $('#pcondition').val(data.result.condition);
+                    $('#pcost').val(data.result.cost_price);
+                    $('#psell').val(data.result.sell_price);
+                    $('#pqty').val(data.result.quantity || 0);
+                    $('#pyear').val(data.result.year_released);
+                    $('#productForm').show();
+                    $('html, body').animate({scrollTop: $('#productForm').offset().top}, 'smooth');
+                }
+            },
+            error: function(error) {
+                console.error('Load product for edit error:', error);
+                // fallback: if element is provided and contains data attributes, use them
+                if (el) {
+                    const $btn = $(el);
+                    $('#productId').val(id);
+                    $('#pbrand').val($btn.data('brand') || '');
+                    $('#pmodel').val($btn.data('model') || '');
+                    $('#pdesc').val($btn.data('desc') || '');
+                    $('#pcondition').val($btn.data('condition') || 'Good');
+                    $('#pcost').val($btn.data('cost') || '');
+                    $('#psell').val($btn.data('sell') || '');
+                    $('#pqty').val($btn.data('qty') || 0);
+                    $('#pyear').val($btn.data('year') || '');
+                    $('#productForm').show();
+                    $('html, body').animate({scrollTop: $('#productForm').offset().top}, 'smooth');
+                    return;
+                }
+
+                Swal.fire('Error', 'Failed to load product details for editing', 'error');
+            }
+        });
+    };
+
+    window.hideProductForm = function() {
+        $('#productForm').hide();
+        $('#pForm')[0].reset();
     };
 
     window.hideProductForm = function() {
@@ -197,7 +244,8 @@ $(document).ready(function() {
             formData.append('image', imageFile);
         }
 
-        const method = productId ? 'PUT' : 'POST';
+        // Use POST for edits to ensure multipart/form-data reaches the server reliably
+        const method = 'POST';
         const endpoint = productId ? `${url}api/v1/items/${productId}` : `${url}api/v1/items`;
 
         $.ajax({
@@ -216,7 +264,9 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error('Save product error:', error);
-                const errorMsg = error.responseJSON?.error || error.responseJSON?.message || 'Failed to save product';
+                // Provide detailed server message when available
+                const serverMsg = error.responseJSON?.error || error.responseJSON?.message || (error.responseText || null);
+                const errorMsg = serverMsg || 'Failed to save product';
                 Swal.fire('Error', errorMsg, 'error');
             }
         });
@@ -237,7 +287,16 @@ $(document).ready(function() {
                 let html = '';
                 if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(product => {
-                        const stock = product.Stock ? product.Stock.quantity : 0;
+                        const stock = product.quantity || 0;
+                        const visible = product.is_visible !== false;
+                        const statusLabel = visible ? 'Active' : 'Archived';
+                        const statusClass = visible ? 'badge-success' : 'badge-secondary';
+                        const visibilityAction = visible ? 'Archive' : 'Restore';
+                        const visibilityIcon = visible ? 'fa-archive' : 'fa-undo';
+
+                        // embed product fields as data attributes so we can populate the edit form without an extra request if needed
+                        const dataAttrs = `data-brand="${(product.camera_brand || '').replace(/\"/g, '&quot;')}" data-model="${(product.camera_model || '').replace(/\"/g, '&quot;')}" data-desc="${(product.description || '').replace(/\"/g, '&quot;')}" data-condition="${(product.condition || '')}" data-cost="${product.cost_price || 0}" data-sell="${product.sell_price || 0}" data-qty="${stock}" data-year="${product.year_released || ''}"`;
+
                         html += `<tr>
                             <td>${product.item_id}</td>
                             <td>${product.camera_brand}</td>
@@ -246,14 +305,15 @@ $(document).ready(function() {
                             <td>₱${parseFloat(product.sell_price).toFixed(2)}</td>
                             <td>${product.condition || 'Good'}</td>
                             <td>${stock}</td>
+                            <td><span class="badge ${statusClass}">${statusLabel}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action" onclick="showProductForm(${product.item_id})" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteProduct(${product.item_id})" title="Delete"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-sm btn-info btn-action btn-edit" ${dataAttrs} onclick="showEditProductForm(this, ${product.item_id})" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-warning btn-action btn-visibility" onclick="toggleProductVisibility(${product.item_id}, ${visible})" title="${visibilityAction}"><i class="fas ${visibilityIcon}"></i></button>
                             </td>
                         </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="8" class="text-center">No products found</td></tr>';
+                    html = '<tr><td colspan="9" class="text-center">No products found</td></tr>';
                 }
                 $('#productsTable tbody').html(html);
 
@@ -265,39 +325,44 @@ $(document).ready(function() {
                         "emptyTable": "No products available"
                     }
                 });
+
             },
             error: function(error) {
                 console.error('Load products error:', error);
                 Swal.fire('Error', 'Failed to load products', 'error');
-                $('#productsTable tbody').html('<tr><td colspan="8" class="text-center text-danger">Failed to load products</td></tr>');
+                $('#productsTable tbody').html('<tr><td colspan="9" class="text-center text-danger">Failed to load products</td></tr>');
             }
         });
     };
 
-    window.deleteProduct = function(id) {
+    window.toggleProductVisibility = function(id, visible) {
+        const action = visible ? 'archive' : 'restore';
+        const title = visible ? 'Archive Product?' : 'Restore Product?';
+        const text = visible ? 'This product will be hidden from the storefront.' : 'This product will become visible again.';
+
         Swal.fire({
-            title: 'Delete Product?',
-            text: 'This action cannot be undone',
+            title,
+            text,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Delete',
+            confirmButtonText: visible ? 'Yes, Archive' : 'Yes, Restore',
             cancelButtonText: 'Cancel',
             allowOutsideClick: false
         }).then(result => {
             if (result.isConfirmed) {
                 $.ajax({
-                    method: 'DELETE',
-                    url: `${url}api/v1/items/${id}`,
+                    method: 'PUT',
+                    url: `${url}api/v1/items/${id}/${action}`,
                     headers: getAuthHeader(),
                     dataType: 'json',
                     success: function(data) {
-                        Swal.fire('Deleted!', 'Product deleted successfully', 'success').then(() => {
+                        Swal.fire('Success', data.message || `Product ${action}d successfully`, 'success').then(() => {
                             loadProducts();
                         });
                     },
                     error: function(error) {
-                        console.error('Delete product error:', error);
-                        const errorMsg = error.responseJSON?.error || 'Failed to delete product';
+                        console.error(`${action} product error:`, error);
+                        const errorMsg = error.responseJSON?.error || `Failed to ${action} product`;
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -570,8 +635,8 @@ $(document).ready(function() {
                 let html = '';
                 if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(item => {
-                        const quantity = item.Stock ? item.Stock.quantity : 0;
-                        const threshold = 5;
+                        const quantity = item.quantity || 0;
+                        const threshold = item.low_stock_threshold || 5;
                         let statusBadge = quantity > threshold ? 'badge-success' : 'badge-warning';
                         if (quantity === 0) statusBadge = 'badge-danger';
 
@@ -631,7 +696,7 @@ $(document).ready(function() {
                     dataType: 'json',
                     success: function(data) {
                         if (data.result) {
-                            const currentQty = data.result.Stock ? data.result.Stock.quantity : 0;
+                            const currentQty = data.result.quantity || 0;
                             const addQty = parseInt(result.value);
                             const newQty = parseInt(currentQty) + addQty;
 

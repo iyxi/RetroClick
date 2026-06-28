@@ -180,11 +180,11 @@
                 <!-- Products Tab -->
                 <div id="products" class="tab-content">
                     <h2>Product Management</h2>
-                    <button class="btn btn-primary mb-3" onclick="showProductForm()"><i class="fas fa-plus"></i> Add Product</button>
+                    <button class="btn btn-primary mb-3" onclick="showAddProductForm()"><i class="fas fa-plus"></i> Add Product</button>
                     
                     <div id="productForm" style="display: none;" class="card mb-3">
                         <div class="card-body">
-                            <h5>Add/Edit Product</h5>
+                            <h5 id="productFormTitle">Add Product</h5>
                             <form id="pForm">
                                 <input type="hidden" id="productId">
                                 <div class="form-row">
@@ -252,6 +252,7 @@
                                     <th>Sell Price</th>
                                     <th>Condition</th>
                                     <th>Stock</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

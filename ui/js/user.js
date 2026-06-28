@@ -124,7 +124,7 @@ $(document).ready(function () {
                 if (data.user.role === 'admin' || data.user.role === 'manager') {
                     window.location.href = 'admin.html'
                 } else {
-                    window.location.href = 'profile.html'
+                    window.location.href = 'index.html'
                 }
             },
             error: function (error) {
@@ -246,27 +246,12 @@ $(document).ready(function () {
 
     });
 
-    $("#profile").load("header.html", function () {
+    loadSharedHeader(function () {
         // After header is loaded, check sessionStorage for userId
         if (sessionStorage.getItem('token')) {
-            // Change Login link to Logout
-            const $loginLink = $('a.nav-link[href="login.html"]');
-            $loginLink.text('Logout').attr({ 'href': '#!', 'id': 'logout-link' }).on('click', function (e) {
-                e.preventDefault();
-                Swal.fire({
-                    text: 'logout',
-                    showConfirmButton: false,
-                    position: 'bottom-right',
-                    timer: 1000,
-                    timerProgressBar: true
-
-                });
-                sessionStorage.clear();
-                window.location.href = 'login.html';
-            });
+            // No changes needed; logout link is already wired by shared header.
+            return;
         }
-        else {
-            window.location.href = 'login.html';
-        }
+        window.location.href = 'login.html';
     });
 })

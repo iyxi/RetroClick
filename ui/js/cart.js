@@ -77,7 +77,7 @@ $(document).ready(function () {
         renderCart();
     });
 
-    $('#header').load("header.html");
+    loadSharedHeader();
 
     $('#checkoutBtn').on('click', function () {
 
