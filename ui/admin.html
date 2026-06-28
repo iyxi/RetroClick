@@ -8,111 +8,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
-    <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .sidebar {
-            background: #2c3e50;
-            min-height: 100vh;
-            padding: 20px;
-            color: white;
-        }
-        .sidebar h2 {
-            margin-bottom: 30px;
-            font-weight: bold;
-        }
-        .sidebar a, .sidebar button {
-            display: block;
-            color: #ecf0f1;
-            padding: 12px 15px;
-            margin: 5px 0;
-            border-radius: 5px;
-            text-decoration: none;
-            border: none;
-            background: none;
-            cursor: pointer;
-            text-align: left;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        .sidebar a:hover, .sidebar button:hover {
-            background: #3498db;
-            padding-left: 25px;
-        }
-        .sidebar .nav-item.active {
-            background: #3498db;
-            border-left: 4px solid #e74c3c;
-        }
-        .card {
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            text-align: center;
-            padding: 20px;
-            color: white;
-            border-radius: 8px;
-        }
-        .stat-card.products {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .stat-card.orders {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .stat-card.users {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        .stat-card.revenue {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        }
-        .stat-card h4 {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .table-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 12px;
-            margin: 2px;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .form-group label {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            border-bottom: 2px solid #3498db;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header h1 {
-            margin: 0;
-            color: #2c3e50;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
+<body class="admin-os">
+    <div class="os-titlebar">
+        <span>
+            <span class="os-dots"><span></span><span></span><span></span></span>
+            RETROCLICK ADMIN.SYS — v2.6
+        </span>
+        <span class="os-clock" id="osClock"></span>
+    </div>
+    <div class="admin-shell">
+        <div class="row" style="margin: 0; width: 100%;">
             <!-- Sidebar -->
             <div class="col-md-3 sidebar">
                 <h2><i class="fas fa-crown"></i> Admin Panel</h2>
@@ -126,13 +33,14 @@
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9" style="padding: 30px;">
+            <div class="col-md-9 admin-main">
                 <div class="header">
                     <h1>RetroClick Admin Dashboard</h1>
                     <span id="adminName"></span>
                 </div>
 
                 <!-- Dashboard Tab -->
+
                 <div id="dashboard" class="tab-content active">
                     <h2>Dashboard Overview</h2>
                     <div class="row">
@@ -325,8 +233,10 @@
                     </div>
                 </div>
             </div>
+            <!-- /.col-md-9.admin-main -->
         </div>
     </div>
+    <!-- /.admin-shell -->
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
@@ -334,5 +244,15 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
     <script src="js/admin.js"></script>
+    <script>
+        function updateOsClock() {
+            var el = document.getElementById('osClock');
+            if (!el) return;
+            var now = new Date();
+            el.textContent = now.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }) + '  ' + now.toLocaleTimeString();
+        }
+        updateOsClock();
+        setInterval(updateOsClock, 1000);
+    </script>
 </body>
 </html>
