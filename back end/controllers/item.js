@@ -66,7 +66,13 @@ exports.createItem = async (req, res, next) => {
             low_stock_threshold
         } = req.body;
 
-        let imagePath = req.file?.path.replace(/\\/g, "/");
+        // support multiple uploaded files (field name: 'images')
+        let imagePath = null;
+        const uploaded = req.files || [];
+        const filePaths = uploaded.map(f => f.path.replace(/\\/g, "/"));
+        if (filePaths.length) {
+            imagePath = filePaths[0]; // primary image
+        }
 
         if (!description || !cost_price || !sell_price || !camera_brand || !camera_model) {
             return res.status(400).json({ error: 'Missing required fields: description, cost_price, sell_price, camera_brand, camera_model' });
@@ -87,13 +93,15 @@ exports.createItem = async (req, res, next) => {
             is_available: is_available !== undefined ? is_available : true
         });
 
-        // Create image record if image exists
-        if (imagePath) {
-            await ItemImage.create({
-                item_id: item.item_id,
-                image_path: imagePath,
-                is_primary: true
-            });
+        // Create image records if files exist
+        if (filePaths.length) {
+            for (let i = 0; i < filePaths.length; i++) {
+                await ItemImage.create({
+                    item_id: item.item_id,
+                    image_path: filePaths[i],
+                    is_primary: i === 0
+                });
+            }
         }
 
         return res.status(201).json({
@@ -126,7 +134,13 @@ exports.updateItem = async (req, res, next) => {
             low_stock_threshold
         } = req.body;
 
-        let imagePath = req.file?.path.replace(/\\/g, "/");
+        // support multiple uploaded files on update
+        let imagePath = null;
+        const uploaded = req.files || [];
+        const filePaths = uploaded.map(f => f.path.replace(/\\/g, "/"));
+        if (filePaths.length) {
+            imagePath = filePaths[0];
+        }
 
         if (!description || !cost_price || !sell_price || !camera_brand || !camera_model) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -148,6 +162,17 @@ exports.updateItem = async (req, res, next) => {
 
         if (imagePath) {
             updateData.img_path = imagePath;
+        }
+
+        // If multiple files uploaded, create ItemImage records
+        if (filePaths.length) {
+            for (let i = 0; i < filePaths.length; i++) {
+                await ItemImage.create({
+                    item_id: id,
+                    image_path: filePaths[i],
+                    is_primary: i === 0
+                });
+            }
         }
 
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);

@@ -218,7 +218,7 @@ $(document).ready(function() {
         const sellPrice = $('#psell').val();
         const year = $('#pyear').val();
         const qty = $('#pqty').val();
-        const imageFile = $('#pimage')[0].files[0];
+        const imageFiles = $('#pimage')[0].files;
 
         // Validation
         if (!brand || !model || !desc || !sellPrice) {
@@ -240,8 +240,10 @@ $(document).ready(function() {
         formData.append('sell_price', sellPrice);
         formData.append('year_released', year || new Date().getFullYear());
         formData.append('quantity', qty || 0);
-        if (imageFile) {
-            formData.append('image', imageFile);
+        if (imageFiles && imageFiles.length) {
+            for (let i = 0; i < imageFiles.length; i++) {
+                formData.append('images', imageFiles[i]);
+            }
         }
 
         // Use POST for edits to ensure multipart/form-data reaches the server reliably
