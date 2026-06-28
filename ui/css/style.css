@@ -1033,64 +1033,221 @@ footer a:hover {
 }
 
 /* ============================================================
-   ADMIN DASHBOARD
+   ADMIN DASHBOARD — "Retro-OS" control panel
+   Flat brass/mahogany desktop-app chrome: hard 1-2px borders,
+   title bars with traffic-light dots, chunky bitmap-style
+   numerals, flat 3-state buttons. Minimal blur, hard offset
+   shadows only. Token reference: --brass / --mahogany / --rust.
    ============================================================ */
+
+body.admin-os {
+  background: var(--mahogany) !important;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 3px);
+}
+
+body.admin-os::before {
+  display: none;
+}
+
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* -- title bar, shown atop the whole app shell -- */
+.os-titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  background: linear-gradient(90deg, var(--mahogany-2), var(--mahogany));
+  border-bottom: 2px solid var(--brass);
+  padding: .5rem .9rem;
+  font-family: var(--font-display);
+  letter-spacing: .06em;
+  color: var(--brass-light);
+  font-size: .95rem;
+}
+
+.os-titlebar .os-dots {
+  display: inline-flex;
+  gap: 6px;
+  margin-right: .6rem;
+}
+
+.os-titlebar .os-dots span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0,0,0,0.35);
+}
+
+.os-titlebar .os-dots span:nth-child(1) { background: var(--rust); }
+.os-titlebar .os-dots span:nth-child(2) { background: var(--brass); }
+.os-titlebar .os-dots span:nth-child(3) { background: var(--sage); }
+
+.os-titlebar .os-clock {
+  font-family: var(--font-body);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  color: var(--cream-deep);
+  opacity: .85;
+}
+
 .sidebar {
-  background: linear-gradient(180deg, var(--mahogany), var(--mahogany-2)) !important;
-  border-right: 3px solid var(--brass);
-  box-shadow: inset -10px 0 24px rgba(0,0,0,0.18);
+  background: var(--mahogany-2) !important;
+  border-right: 2px solid var(--brass);
+  box-shadow: none;
+  padding: 1.1rem .9rem !important;
+  width: 240px;
+  flex-shrink: 0;
 }
 
 .sidebar h2 {
   font-family: var(--font-display);
-  letter-spacing: .04em;
+  font-size: 1.3rem;
+  letter-spacing: .05em;
   color: var(--brass-light) !important;
-  border-bottom: 1px solid rgba(232, 201, 122, 0.25);
-  padding-bottom: 1rem;
+  border: 1px solid rgba(232, 201, 122, 0.35);
+  background: rgba(0,0,0,0.18);
+  padding: .6rem .7rem;
+  margin-bottom: 1.1rem !important;
+  text-align: center;
 }
 
 .sidebar a,
 .sidebar button {
+  display: flex !important;
+  align-items: center;
+  gap: .55rem;
   color: var(--cream-deep) !important;
   font-family: var(--font-body);
   font-weight: 600;
-  border-left: 4px solid transparent;
-  transition: background-color .2s var(--ease), padding-left .2s var(--ease), border-color .2s var(--ease);
+  font-size: .92rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.14) !important;
+  margin: 0 0 6px 0 !important;
+  padding: .55rem .7rem !important;
+  transition: background-color .15s linear, border-color .15s linear;
 }
 
 .sidebar a:hover,
 .sidebar button:hover {
-  background: rgba(201, 162, 75, 0.18) !important;
-  border-left-color: var(--brass);
+  background: rgba(201, 162, 75, 0.22) !important;
+  border-color: var(--brass);
+  padding-left: .7rem !important;
 }
 
 .sidebar .nav-item.active {
-  background: rgba(201, 162, 75, 0.28) !important;
-  border-left: 4px solid var(--brass) !important;
+  background: var(--brass) !important;
+  color: var(--mahogany) !important;
+  border-color: var(--brass-light) !important;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+}
+
+.sidebar .nav-item.active,
+.sidebar .nav-item.active i {
+  color: var(--mahogany) !important;
+}
+
+.sidebar hr {
+  border-top: 1px dashed rgba(232, 201, 122, 0.35);
+  opacity: 1;
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  background:
+    radial-gradient(circle at top left, rgba(157, 145, 103, 0.16), transparent 30rem),
+    var(--paper);
+  padding: 1.6rem;
 }
 
 .header {
-  background: rgba(255, 248, 234, 0.94) !important;
-  border-bottom: 3px solid var(--bordeaux) !important;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: var(--cream-deep) !important;
+  border: 2px solid var(--ink) !important;
+  border-bottom: none !important;
+  border-radius: 4px 4px 0 0 !important;
+  box-shadow: none !important;
+  padding: .7rem 1rem !important;
 }
 
 .header h1 {
   color: var(--ink) !important;
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: .03em;
+}
+
+.header::before {
+  content: "RETROCLICK // ADMIN.SYS";
+  display: block;
+  font-family: var(--font-body);
+  font-size: .66rem;
+  letter-spacing: .12em;
+  color: var(--muted);
+  opacity: .7;
+  margin-bottom: .15rem;
+}
+
+#adminName {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: .82rem;
+  background: var(--ink);
+  color: var(--cream-deep);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  padding: .3rem .6rem;
+}
+
+/* tab content area gets a console-style frame to pair with .header above */
+.tab-content {
+  border: 2px solid var(--ink);
+  border-top: none;
+  background: var(--paper);
+  padding: 1.25rem 1.25rem .5rem;
+  border-radius: 0 0 4px 4px;
+  margin-bottom: 1.5rem;
+}
+
+.tab-content.active {
+  animation: tabFlicker .25s steps(2, end);
+}
+
+@keyframes tabFlicker {
+  0% { opacity: .4; }
+  100% { opacity: 1; }
+}
+
+.tab-content h2 {
+  font-family: var(--font-display);
+  letter-spacing: .04em;
+  font-size: 1.4rem;
+  display: inline-block;
+  border-bottom: 3px solid var(--brass);
+  padding-bottom: .25rem;
+  margin-bottom: 1.2rem;
 }
 
 .card {
-  border: 1px solid var(--line) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow) !important;
-  background: rgba(255, 248, 234, 0.94) !important;
-  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  border: 1px solid var(--ink) !important;
+  border-radius: 4px !important;
+  box-shadow: 3px 3px 0 rgba(63, 29, 16, 0.18) !important;
+  background: var(--cream-deep) !important;
+  transition: transform .15s linear, box-shadow .15s linear;
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 rgba(63, 29, 16, 0.24) !important;
 }
 
 .card.h-100 {
@@ -1115,10 +1272,22 @@ footer a:hover {
   margin-bottom: 0.35rem;
 }
 
+.card .card-body h5 {
+  font-family: var(--font-display);
+  letter-spacing: .03em;
+  font-size: 1.05rem;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: .5rem;
+}
+
+/* -- stat tiles: flat "LED counter" panels, no gradients -- */
 .stat-card {
-  border-radius: var(--radius) !important;
+  border: 2px solid var(--ink) !important;
+  border-radius: 4px !important;
   color: var(--paper) !important;
-  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  background: var(--mahogany-2) !important;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.28) !important;
+  transition: transform .15s linear, box-shadow .15s linear;
   position: relative;
   overflow: hidden;
 }
@@ -1127,40 +1296,166 @@ footer a:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
-  transform: translateX(-100%);
-  transition: transform .6s var(--ease);
-}
-
-.stat-card:hover::after {
-  transform: translateX(100%);
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 3px);
+  pointer-events: none;
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 32px rgba(43, 20, 10, 0.28);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.3) !important;
 }
 
-.stat-card.products {
-  background: linear-gradient(135deg, var(--bordeaux), var(--cedar)) !important;
+.stat-card h4 {
+  font-family: var(--font-display) !important;
+  font-size: 2.1rem !important;
+  letter-spacing: .04em;
+  color: var(--brass-light) !important;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
 }
 
-.stat-card.orders {
-  background: linear-gradient(135deg, var(--rust), var(--bordeaux)) !important;
+.stat-card p {
+  color: var(--cream-deep) !important;
+  font-size: .76rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .85;
 }
 
-.stat-card.users {
-  background: linear-gradient(135deg, var(--cedar), var(--sage)) !important;
-}
-
-.stat-card.revenue {
-  background: linear-gradient(135deg, var(--brass), var(--rust)) !important;
-}
+.stat-card.products { background: var(--bordeaux) !important; }
+.stat-card.orders { background: var(--rust) !important; }
+.stat-card.users { background: var(--cedar) !important; }
+.stat-card.revenue { background: var(--ok-green) !important; }
 
 .table-container {
-  background: rgba(255, 248, 234, 0.94) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow) !important;
+  background: var(--paper) !important;
+  border: 1px solid var(--ink) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 0 0 1px rgba(63,29,16,0.08) !important;
+  padding: 1rem !important;
+}
+
+/* flat 3-state buttons (Normal / Hover / Disabled), per the OS kit rules */
+.admin-main .btn,
+.admin-main button {
+  border-radius: 3px;
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 rgba(63,29,16,0.22);
+}
+
+.admin-main .btn:hover,
+.admin-main button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(63,29,16,0.26);
+}
+
+.admin-main .btn:active,
+.admin-main button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 rgba(63,29,16,0.2);
+}
+
+.admin-main .btn:disabled,
+.admin-main button:disabled {
+  opacity: .55;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.admin-main .btn-action {
+  border-width: 1px;
+}
+
+@media (max-width: 900px) {
+  .admin-shell { flex-direction: column; }
+  .sidebar { width: 100%; border-right: none; border-bottom: 2px solid var(--brass); }
+}
+
+/* tables inside the admin shell: flat console rows, no soft stripes */
+.admin-main .table {
+  border: 1px solid var(--line);
+}
+
+.admin-main .table thead th {
+  background: var(--ink);
+  color: var(--cream-deep);
+  border-bottom: 2px solid var(--brass) !important;
+}
+
+.admin-main .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(201, 162, 75, 0.12);
+}
+
+.admin-main .table-striped tbody tr:hover {
+  background-color: rgba(201, 162, 75, 0.26);
+}
+
+.admin-main .table td,
+.admin-main .table th {
+  border-color: var(--line);
+  vertical-align: middle;
+}
+
+/* status / role badges as flat tags, echoing the kit's flat color chips */
+.admin-main .badge,
+.status-badge {
+  display: inline-block;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  padding: .2rem .5rem;
+  font-family: var(--font-body);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: var(--bone);
+  color: var(--ink);
+}
+
+.admin-main .badge-success,
+.status-badge.active,
+.status-badge.completed {
+  background: var(--ok-green);
+  border-color: var(--ok-green);
+  color: var(--paper);
+}
+
+.admin-main .badge-danger,
+.status-badge.inactive,
+.status-badge.cancelled,
+.status-badge.low {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: var(--paper);
+}
+
+.admin-main .badge-warning,
+.status-badge.pending {
+  background: var(--brass);
+  border-color: var(--cedar);
+  color: var(--mahogany);
+}
+
+/* product/edit form inside .card: console input styling */
+.admin-main select,
+.admin-main .form-control {
+  border-radius: 3px;
+  border: 1px solid var(--ink);
+}
+
+.admin-main select:focus,
+.admin-main .form-control:focus {
+  border-color: var(--brass);
+  box-shadow: 0 0 0 2px rgba(201, 162, 75, 0.3);
+}
+
+#productForm {
+  border-style: dashed !important;
+}
+
+#productFormTitle {
+  font-family: var(--font-display);
+  letter-spacing: .03em;
 }
 
 /* ============================================================
@@ -1168,6 +1463,15 @@ footer a:hover {
    ============================================================ */
 .chart-container {
   padding: 1rem;
+}
+
+/* functional: admin.js toggles .active to switch tabs */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
 }
 
 ::selection {
