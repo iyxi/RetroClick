@@ -4,7 +4,12 @@ const path = require("path");
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'images');
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (ext === '.mp3' || ext === '.mp4' || file.mimetype.startsWith('audio') || file.mimetype.startsWith('video')) {
+            cb(null, 'media');
+        } else {
+            cb(null, 'images');
+        }
     },
     filename: function (req, file, cb) {
 
@@ -21,8 +26,9 @@ module.exports = multer({
 
     fileFilter: (req, file, cb) => {
         let ext = path.extname(file.originalname).toLowerCase();
-        if (ext !== ".jpg" && ext !== ".jpeg" && ext !== ".png") {
-            cb(new Error("Unsupported file type!"), false);
+        const allowed = ['.jpg', '.jpeg', '.png', '.mp3', '.mp4'];
+        if (!allowed.includes(ext)) {
+            cb(new Error('Unsupported file type!'), false);
             return;
         }
         cb(null, true);

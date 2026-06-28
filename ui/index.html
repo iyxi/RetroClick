@@ -150,6 +150,32 @@
             cursor: pointer;
         }
 
+        /* Autocomplete suggestions */
+        .autocomplete-suggestions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 8px);
+            background: white;
+            border: 1px solid #e0dede;
+            border-radius: 6px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            z-index: 9999;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f3f3;
+        }
+
+        .autocomplete-item:last-child { border-bottom: none; }
+
+        .autocomplete-item:hover { background: #f6f2ea; }
+
         /* Featured Products Section */
         .featured-section {
             margin-bottom: 80px;
@@ -353,8 +379,9 @@
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search by brand, model, or condition...">
+                        <input type="text" id="searchInput" autocomplete="off" placeholder="Search by brand, model, or condition...">
                         <button id="searchBtn" type="button"><i class="fas fa-search"></i></button>
+                        <div id="suggestions" class="autocomplete-suggestions"></div>
                     </div>
                 </div>
             </div>
@@ -551,6 +578,22 @@
                 return;
             }
 
+            // If we have public items loaded, filter locally for quicker autocomplete/search
+            if (window.PUBLIC_ITEMS && window.PUBLIC_ITEMS.length) {
+                const searchTerm = query.toLowerCase();
+                const filtered = window.PUBLIC_ITEMS.filter(product => {
+                    return (
+                        String(product.camera_brand || '').toLowerCase().includes(searchTerm) ||
+                        String(product.camera_model || '').toLowerCase().includes(searchTerm) ||
+                        String(product.description || '').toLowerCase().includes(searchTerm) ||
+                        String(product.condition || '').toLowerCase().includes(searchTerm)
+                    );
+                });
+                displaySearchResults(filtered, query);
+                return;
+            }
+
+            // Fallback: request items (may require auth)
             $.ajax({
                 method: 'GET',
                 url: `${API_URL}/items`,
@@ -575,6 +618,76 @@
         }
 
         $(document).ready(function() {
+            // Preload public items for autocomplete and fast search
+            window.PUBLIC_ITEMS = [];
+            $.ajax({
+                method: 'GET',
+                url: `${API_URL}/public/items`,
+                dataType: 'json',
+                success: function(data) {
+                    window.PUBLIC_ITEMS = data.rows || [];
+                },
+                error: function() {
+                    console.log('Unable to load public items for autocomplete');
+                }
+            });
+
+            // Debounce helper
+            function debounce(fn, wait) {
+                let t;
+                return function() {
+                    const ctx = this, args = arguments;
+                    clearTimeout(t);
+                    t = setTimeout(function() { fn.apply(ctx, args); }, wait);
+                };
+            }
+
+            // Render suggestions
+            function showSuggestions(matches) {
+                const $s = $('#suggestions');
+                if (!matches.length) { $s.empty().hide(); return; }
+                let html = '';
+                matches.forEach(m => {
+                    const title = m.camera_model || m.description || '';
+                    const brand = m.camera_brand || '';
+                    html += `<div class="autocomplete-item" data-q="${escapeHtml(title)}">` +
+                        `<strong>${escapeHtml(title)}</strong> <small class="text-muted">${escapeHtml(brand)}</small>` +
+                        `</div>`;
+                });
+                $s.html(html).show();
+            }
+
+            function escapeHtml(str) {
+                return String(str || '').replace(/[&<>"]+/g, function(s) {
+                    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[s];
+                });
+            }
+
+            $('#searchInput').on('input', debounce(function() {
+                const q = $(this).val().trim().toLowerCase();
+                if (!q) { $('#suggestions').empty().hide(); return; }
+                const matches = (window.PUBLIC_ITEMS || []).filter(product => {
+                    const hay = (String(product.camera_brand || '') + ' ' + String(product.camera_model || '') + ' ' + String(product.description || '') + ' ' + String(product.condition || '')).toLowerCase();
+                    return hay.includes(q);
+                }).slice(0, 8);
+                showSuggestions(matches);
+            }, 180));
+
+            // Click suggestion
+            $(document).on('click', '.autocomplete-item', function() {
+                const q = $(this).attr('data-q');
+                $('#searchInput').val(q);
+                $('#suggestions').empty().hide();
+                performSearch();
+            });
+
+            // Hide suggestions when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#searchInput, #suggestions').length) {
+                    $('#suggestions').empty().hide();
+                }
+            });
+
             $('#searchBtn').on('click', function(e) {
                 e.preventDefault();
                 performSearch();

@@ -11,6 +11,7 @@ const Cart = require('./cart');
 const CartItem = require('./cartItem');
 const OrderStatusHistory = require('./orderStatusHistory');
 const EmailNotification = require('./emailNotification');
+const Media = require('./media');
 
 // Initialize models
 const db = {};
@@ -160,6 +161,16 @@ db.User.hasMany(db.EmailNotification, {
 });
 db.EmailNotification.belongsTo(db.User, {
     foreignKey: 'user_id'
+});
+
+// ========== MEDIA ==========
+db.Media = Media(sequelize, require('sequelize').DataTypes);
+db.User.hasMany(db.Media, {
+    foreignKey: 'uploaded_by',
+    onDelete: 'SET NULL'
+});
+db.Media.belongsTo(db.User, {
+    foreignKey: 'uploaded_by'
 });
 
 db.sequelize = sequelize;

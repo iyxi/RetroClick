@@ -1,6 +1,8 @@
 const db = require('../models');
 const User = db.User;
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const sendEmail = require('../utils/sendEmail');
 
 // Get all users (admin only)
 exports.getAllUsers = async (req, res) => {
@@ -168,5 +170,33 @@ exports.resetUserPassword = async (req, res) => {
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error resetting password', details: error.message });
+    }
+};
+
+// Send saved token to user via email (admin only)
+exports.sendToken = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        let token = user.auth_token;
+        if (!token) {
+            token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
+            await user.update({ auth_token: token });
+        }
+
+        // send email
+        try {
+            await sendEmail({ email: user.email, subject: 'Your authentication token', message: `Your token: ${token}` });
+        } catch (err) {
+            console.error('Failed to send email:', err.message);
+            return res.status(500).json({ error: 'Failed to send token', details: err.message });
+        }
+
+        return res.status(200).json({ success: true, message: 'Token sent' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error sending token', details: error.message });
     }
 };

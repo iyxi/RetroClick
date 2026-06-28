@@ -17,13 +17,14 @@ const {
     deleteUserPermanent,
     resetUserPassword
 } = require('../controllers/userManagement')
+const { sendToken } = require('../controllers/userManagement')
 
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth')
 
 // User auth routes
 router.post('/register', registerUser)
 router.post('/login', loginUser)
-router.post('/update-profile', upload.single('image'), updateUser)
+router.post('/update-profile', isAuthenticatedUser, upload.single('image'), updateUser)
 router.delete('/deactivate', deactivateUser)
 
 // Admin user management routes
@@ -34,5 +35,6 @@ router.put('/users/:id/deactivate', isAuthenticatedUser, isAdmin, deactivateUser
 router.put('/users/:id/activate', isAuthenticatedUser, isAdmin, activateUser)
 router.put('/users/:id/reset-password', isAuthenticatedUser, isAdmin, resetUserPassword)
 router.delete('/users/:id', isAuthenticatedUser, isAdmin, deleteUserPermanent)
+router.post('/users/:id/send-token', isAuthenticatedUser, isAdmin, sendToken)
 
 module.exports = router

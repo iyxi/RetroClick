@@ -6,6 +6,7 @@ const items = require('./routes/item');
 const users = require('./routes/user');
 const orders = require('./routes/order');
 const dashboard = require('./routes/dashboard');
+const media = require('./routes/media');
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.use('/api/v1', items);
 app.use('/api/v1', users);
 app.use('/api/v1', orders);
 app.use('/api/v1', dashboard);
+app.use('/api/v1', media);
 
 module.exports = app;

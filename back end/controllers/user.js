@@ -67,8 +67,15 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ success: false, message: 'incorrect password' });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
+        // Generate JWT token including role for faster authorization checks
+        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Save token and update last login
+        try {
+            await user.update({ auth_token: token, last_login_at: new Date() });
+        } catch (err) {
+            console.error('Failed to save auth token:', err.message);
+        }
 
         const userResponse = {
             id: user.id,
