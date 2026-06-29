@@ -27,15 +27,15 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0.00
         },
-        subtotal: {
+        total: {
             type: DataTypes.DECIMAL(12, 2),
             allowNull: false,
             defaultValue: 0.00
         },
-        total_amount: {
-            type: DataTypes.DECIMAL(12, 2),
+        order_items: {
+            type: DataTypes.JSON,
             allowNull: false,
-            defaultValue: 0.00
+            defaultValue: '[]'
         },
         status: {
             type: DataTypes.ENUM('Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'),

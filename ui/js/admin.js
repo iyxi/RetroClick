@@ -119,12 +119,13 @@ $(document).ready(function() {
         let html = '<table class="table table-sm"><thead><tr><th>Order ID</th><th>User</th><th>Date</th><th>Total</th></tr></thead><tbody>';
         orders.slice(0, 5).forEach(order => {
             const date = new Date(order.created_at).toLocaleDateString();
-            total += parseFloat(order.total_amount || 0);
+            const totalValue = parseFloat(order.total ?? order.total_amount ?? 0);
+            total += totalValue;
             html += `<tr>
                 <td>#${order.id}</td>
                 <td>${order.User ? order.User.name : 'Unknown'}</td>
                 <td>${date}</td>
-                <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                <td>₱${totalValue.toFixed(2)}</td>
             </tr>`;
         });
         html += '</tbody></table>';
