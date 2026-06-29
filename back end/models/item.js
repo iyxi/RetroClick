@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'Good'
         },
         year_released: {
-            type: DataTypes.DATEONLY,
+            type: DataTypes.INTEGER.UNSIGNED,
             allowNull: true
         },
         quantity: {

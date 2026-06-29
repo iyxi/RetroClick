@@ -1497,3 +1497,48 @@ body.admin-os::before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--bordeaux);
 }
+
+/* Card-level carousel controls */
+.card-carousel {
+  position: relative;
+  overflow: hidden;
+}
+.card-carousel .carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  z-index: 5;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.card-carousel .carousel-btn:hover {
+  background: rgba(0,0,0,0.55);
+}
+.card-carousel .carousel-prev { left: 8px; }
+.card-carousel .carousel-next { right: 8px; }
+.card-carousel img.card-img-top {
+  height: 220px;
+  object-fit: cover;
+}
+
+/* Ensure controls are positioned relative to the image area */
+.card-image-wrap { position: relative; }
+.card-image-wrap .carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.card-image-wrap .carousel-prev { left: 8px; }
+.card-image-wrap .carousel-next { right: 8px; }
+.card-image-wrap img.card-img-top { display: block; width: 100%; height: 220px; object-fit: cover; }

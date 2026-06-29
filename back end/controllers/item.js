@@ -21,9 +21,13 @@ exports.getAllItems = async (req, res) => {
 exports.getPublicItems = async (req, res) => {
     try {
         const items = await Item.findAll({
-            raw: true,
+            raw: false,
             where: { is_visible: true, is_available: true },
-            order: [['created_at', 'DESC']]
+            include: [{
+                model: ItemImage,
+                attributes: ['image_id', 'image_path', 'is_primary', 'sort_order']
+            }],
+            order: [[ItemImage, 'sort_order', 'ASC'], ['created_at', 'DESC']]
         });
 
         return res.status(200).json({ rows: items, success: true });
@@ -36,7 +40,13 @@ exports.getPublicItems = async (req, res) => {
 // Get single item
 exports.getSingleItem = async (req, res) => {
     try {
-        const item = await Item.findByPk(req.params.id, { raw: true });
+        const item = await Item.findByPk(req.params.id, {
+            raw: false,
+            include: [{
+                model: ItemImage,
+                attributes: ['image_id', 'image_path', 'is_primary', 'sort_order']
+            }]
+        });
 
         if (!item) {
             return res.status(404).json({ success: false, message: 'Item not found' });
@@ -50,6 +60,21 @@ exports.getSingleItem = async (req, res) => {
 };
 
 // Create item with images and quantity
+const parseBoolean = (value) => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === 'boolean') return value;
+    const normalized = String(value).trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    return undefined;
+};
+
+const parseNumber = (value, fallback = undefined) => {
+    if (value === undefined || value === null || value === '') return fallback;
+    const number = Number(value);
+    return Number.isNaN(number) ? fallback : number;
+};
+
 exports.createItem = async (req, res, next) => {
     try {
         const { 
@@ -74,23 +99,31 @@ exports.createItem = async (req, res, next) => {
             imagePath = filePaths[0]; // primary image
         }
 
-        if (!description || !cost_price || !sell_price || !camera_brand || !camera_model) {
-            return res.status(400).json({ error: 'Missing required fields: description, cost_price, sell_price, camera_brand, camera_model' });
+        const parsedCostPrice = parseNumber(cost_price, 0);
+        const parsedSellPrice = parseNumber(sell_price);
+        const parsedQuantity = parseNumber(quantity, 0);
+        const parsedYearReleased = parseNumber(year_released, null);
+        const parsedLowStockThreshold = parseNumber(low_stock_threshold, 5);
+        const parsedVisible = parseBoolean(is_visible);
+        const parsedAvailable = parseBoolean(is_available);
+
+        if (!description || parsedSellPrice === undefined || !camera_brand || !camera_model) {
+            return res.status(400).json({ error: 'Missing required fields: description, sell_price, camera_brand, camera_model' });
         }
 
         const item = await Item.create({
             description,
-            cost_price,
-            sell_price,
+            cost_price: parsedCostPrice,
+            sell_price: parsedSellPrice,
             camera_brand,
             camera_model,
             condition: condition || 'Good',
-            year_released,
+            year_released: parsedYearReleased,
             img_path: imagePath,
-            quantity: quantity !== undefined ? quantity : 0,
-            low_stock_threshold: low_stock_threshold !== undefined ? low_stock_threshold : 5,
-            is_visible: is_visible !== undefined ? is_visible : true,
-            is_available: is_available !== undefined ? is_available : true
+            quantity: parsedQuantity,
+            low_stock_threshold: parsedLowStockThreshold,
+            is_visible: parsedVisible !== undefined ? parsedVisible : true,
+            is_available: parsedAvailable !== undefined ? parsedAvailable : true
         });
 
         // Create image records if files exist
@@ -146,18 +179,26 @@ exports.updateItem = async (req, res, next) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        const parsedCostPrice = parseNumber(cost_price, 0);
+        const parsedSellPrice = parseNumber(sell_price);
+        const parsedQuantity = parseNumber(quantity, undefined);
+        const parsedYearReleased = parseNumber(year_released, null);
+        const parsedLowStockThreshold = parseNumber(low_stock_threshold, undefined);
+        const parsedVisible = parseBoolean(is_visible);
+        const parsedAvailable = parseBoolean(is_available);
+
         const updateData = {
             description,
-            cost_price,
-            sell_price,
+            cost_price: parsedCostPrice,
+            sell_price: parsedSellPrice,
             camera_brand,
             camera_model,
             condition: condition || 'Good',
-            year_released,
-            quantity: quantity !== undefined ? quantity : undefined,
-            low_stock_threshold: low_stock_threshold !== undefined ? low_stock_threshold : undefined,
-            is_visible: is_visible !== undefined ? is_visible : true,
-            is_available: is_available !== undefined ? is_available : true
+            year_released: parsedYearReleased,
+            quantity: parsedQuantity,
+            low_stock_threshold: parsedLowStockThreshold,
+            is_visible: parsedVisible !== undefined ? parsedVisible : undefined,
+            is_available: parsedAvailable !== undefined ? parsedAvailable : undefined
         };
 
         if (imagePath) {

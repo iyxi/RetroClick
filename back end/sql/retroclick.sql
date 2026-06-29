@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orderinfo;
 DROP TABLE IF EXISTS cart_item;
 DROP TABLE IF EXISTS cart;
+DROP TABLE IF EXISTS item_images;
 DROP TABLE IF EXISTS item;
 DROP TABLE IF EXISTS customer;
 DROP TABLE IF EXISTS users;
@@ -114,7 +115,25 @@ CREATE TABLE item (
 ) ENGINE=InnoDB;
 
 -- =========================
--- 4) INVENTORY
+-- 4) ITEM IMAGES
+-- =========================
+CREATE TABLE item_images (
+  image_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  item_id INT UNSIGNED NOT NULL,
+  image_path VARCHAR(255) NOT NULL,
+  is_primary TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (image_id),
+  KEY idx_item_images_item_id (item_id),
+  CONSTRAINT fk_item_images_item FOREIGN KEY (item_id) REFERENCES item(item_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- 5) INVENTORY
 -- =========================
 -- Inventory quantity and low stock threshold are now stored on the item table.
 
