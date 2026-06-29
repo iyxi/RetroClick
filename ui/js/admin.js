@@ -8,22 +8,37 @@ $(document).ready(function() {
     let userName = sessionStorage.getItem('userName');
     
     // Verify admin access
+    const showAccessMessage = (message, redirectUrl) => {
+        $('#adminAccessMessage').text(message).show();
+        $('#adminShell').hide();
+        if (redirectUrl) {
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 2200);
+        }
+    };
+
     if (!token || !userRole) {
-        window.location.href = 'login.html';
+        showAccessMessage('Access denied. Please login as an admin to continue.', 'login.html');
         return;
     }
     
+    let role;
     try {
-        const role = JSON.parse(userRole);
-        if (role !== 'admin' && role !== 'manager') {
-            window.location.href = 'profile.html';
-            return;
-        }
+        role = JSON.parse(userRole);
     } catch (e) {
         console.error('Error parsing role:', e);
-        window.location.href = 'login.html';
+        showAccessMessage('Invalid login state. Please login again.', 'login.html');
         return;
     }
+
+    if (role !== 'admin' && role !== 'manager') {
+        showAccessMessage('Only admin users may access this page.', 'profile.html');
+        return;
+    }
+
+    $('#adminAccessMessage').hide();
+    $('#adminShell').show();
 
     // Display admin info
     const displayAdminName = () => {

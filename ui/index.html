@@ -6,366 +6,28 @@
     <title>RetroClick - Vintage Camera Store</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        :root {
-            --primary-color: #233126;
-            --secondary-color: #4A1A23;
-            --accent-color: #8C603E;
-            --light-bg: #D8D0C2;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f6f2ea;
-            color: #1d211d;
-        }
-
-        /* Navigation */
-        nav {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .navbar-brand {
-            font-size: 24px;
-            font-weight: bold;
-            color: #D8D0C2 !important;
-        }
-
-        .navbar-brand i {
-            margin-right: 10px;
-        }
-
-        .nav-link {
-            color: #ecf0f1 !important;
-            transition: color 0.3s;
-        }
-
-        .nav-link:hover {
-            color: var(--secondary-color) !important;
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 100px 0;
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .hero h1 {
-            font-size: 48px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgb(0, 0, 0);
-        }
-
-        .hero p {
-            font-size: 18px;
-            margin-bottom: 30px;
-        }
-
-        .hero .btn-group {
-            gap: 15px;
-        }
-
-        .btn-primary-custom {
-            background: var(--secondary-color);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 5px;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-block;
-            border: none;
-        }
-
-        .btn-primary-custom:hover {
-            background: #c0392b;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .btn-secondary-custom {
-            background: transparent;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 5px;
-            text-decoration: none;
-            border: 2px solid white;
-            transition: all 0.3s;
-            display: inline-block;
-        }
-
-        .btn-secondary-custom:hover {
-            background: white;
-            color: var(--primary-color);
-        }
-
-        /* Search Section */
-        .search-section {
-            background: white;
-            padding: 40px 0;
-            margin-bottom: 60px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .search-box {
-            position: relative;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border 0.3s;
-        }
-
-        .search-box input:focus {
-            border-color: var(--accent-color);
-            outline: none;
-            box-shadow: 0 0 10px rgba(140, 96, 62, 0.16);
-        }
-
-        .search-box button {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--accent-color);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-
-        /* Autocomplete suggestions */
-        .autocomplete-suggestions {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: calc(100% + 8px);
-            background: white;
-            border: 1px solid #e0dede;
-            border-radius: 6px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-            z-index: 9999;
-            max-height: 240px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .autocomplete-item {
-            padding: 10px 14px;
-            cursor: pointer;
-            border-bottom: 1px solid #f3f3f3;
-        }
-
-        .autocomplete-item:last-child { border-bottom: none; }
-
-        .autocomplete-item:hover { background: #f6f2ea; }
-
-        /* Featured Products Section */
-        .featured-section {
-            margin-bottom: 80px;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 50px;
-            color: var(--primary-color);
-            position: relative;
-            padding-bottom: 20px;
-        }
-
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 4px;
-            background: var(--secondary-color);
-            border-radius: 2px;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: all 0.3s;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            height: 100%;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 250px;
-            background: var(--light-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
-            overflow: hidden;
-        }
-
-        .product-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .product-body {
-            padding: 20px;
-        }
-
-        .product-brand {
-            color: var(--secondary-color);
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        .product-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--primary-color);
-        }
-
-        .product-condition {
-            display: inline-block;
-            background: var(--light-bg);
-            color: var(--primary-color);
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        .product-price {
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--secondary-color);
-            margin-bottom: 15px;
-        }
-
-        .product-stock {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 15px;
-        }
-
-        .product-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .product-actions button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-details {
-            background: var(--accent-color);
-            color: white;
-        }
-
-        .btn-details:hover {
-            background: #233126;
-        }
-
-        .btn-cart {
-            background: var(--secondary-color);
-            color: white;
-        }
-
-        .btn-cart:hover {
-            background: #8C603E;
-        }
-
-        /* Categories Section */
-        .categories-section {
-            background: white;
-            padding: 60px 0;
-            margin-bottom: 60px;
-        }
-
-        .category-card {
-            text-align: center;
-            padding: 30px;
-            border-radius: 8px;
-            background: var(--light-bg);
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .category-card:hover {
-            background: var(--secondary-color);
-            color: white;
-        }
-
-        .category-icon {
-            font-size: 40px;
-            margin-bottom: 15px;
-        }
-
-        .category-name {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        /* Footer styling is loaded from css/style.css */
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 32px;
-            }
-
-            .hero p {
-                font-size: 16px;
-            }
-
-            .section-title {
-                font-size: 28px;
-            }
-        }
-    </style>
 </head>
 <body>
     <div id="header"></div>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" id="heroSection">
+        <div class="hero-ribbon">EST.<br>1952</div>
+        <div class="hero-spotlight" id="heroSpotlight"></div>
         <div class="container">
+            <div class="hero-ticket">
+                <span>Vintage &amp; Retro</span>
+                <span class="dot-sep"></span>
+                <span>Hand-Inspected</span>
+                <span class="dot-sep"></span>
+                <span>Worldwide Shipping</span>
+            </div>
             <h1>Welcome to RetroClick</h1>
-            <p>Discover Vintage & Retro Cameras - The Perfect Addition to Your Collection</p>
+            <p>Discover Vintage &amp; Retro Cameras - The Perfect Addition to Your Collection</p>
             <div class="btn-group">
                 <a href="home.html" class="btn-primary-custom">Shop Now</a>
                 <a href="#about" class="btn-secondary-custom">Learn More</a>
@@ -373,15 +35,47 @@
         </div>
     </section>
 
+    <div class="brand-marquee" aria-hidden="true">
+        <div class="marquee-track">
+            <span>Canon</span><span>&middot;</span><span>Nikon</span><span>&middot;</span><span>Leica</span><span>&middot;</span><span>Pentax</span><span>&middot;</span><span>Minolta</span><span>&middot;</span><span>Olympus</span><span>&middot;</span>
+            <span>Canon</span><span>&middot;</span><span>Nikon</span><span>&middot;</span><span>Leica</span><span>&middot;</span><span>Pentax</span><span>&middot;</span><span>Minolta</span><span>&middot;</span><span>Olympus</span><span>&middot;</span>
+        </div>
+    </div>
+
+    <!-- Trust Badges -->
+    <section class="trust-row" id="trustRow">
+        <div class="trust-badge">
+            <div class="stamp"><i class="fas fa-magnifying-glass"></i></div>
+            <h4>Hand Inspected</h4>
+            <p>Every camera tested and graded before listing.</p>
+        </div>
+        <div class="trust-badge">
+            <div class="stamp"><i class="fas fa-shield-halved"></i></div>
+            <h4>Buyer Protected</h4>
+            <p>Secure checkout with verified seller guarantees.</p>
+        </div>
+        <div class="trust-badge">
+            <div class="stamp"><i class="fas fa-box-open"></i></div>
+            <h4>Careful Shipping</h4>
+            <p>Padded, insured packaging for every shipment.</p>
+        </div>
+        <div class="trust-badge">
+            <div class="stamp"><i class="fas fa-heart"></i></div>
+            <h4>Made by Collectors</h4>
+            <p>Curated by people who love film as much as you.</p>
+        </div>
+    </section>
+
+    <div class="section-divider" aria-hidden="true"></div>
+
     <!-- Search Section -->
     <section class="search-section">
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
                     <div class="search-box">
-                        <input type="text" id="searchInput" autocomplete="off" placeholder="Search by brand, model, or condition...">
+                        <input type="text" id="searchInput" placeholder="Search by brand, model, or condition...">
                         <button id="searchBtn" type="button"><i class="fas fa-search"></i></button>
-                        <div id="suggestions" class="autocomplete-suggestions"></div>
                     </div>
                 </div>
             </div>
@@ -398,6 +92,7 @@
     <!-- Featured Products Section -->
     <section class="featured-section" id="featured">
         <div class="container">
+            <span class="section-eyebrow">Curated Selection</span>
             <h2 class="section-title">Featured Cameras</h2>
             <div id="featuredProducts" class="row">
                 <!-- Products will be loaded here via JavaScript -->
@@ -405,9 +100,12 @@
         </div>
     </section>
 
+    <div class="section-divider" aria-hidden="true"></div>
+
     <!-- Categories Section -->
     <section class="categories-section" id="about">
         <div class="container">
+            <span class="section-eyebrow">Shop by Maker</span>
             <h2 class="section-title">Browse by Category</h2>
             <div class="row">
                 <div class="col-md-4 mb-4">
@@ -429,6 +127,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Closing CTA banner -->
+    <section class="cta-banner">
+        <div class="container">
+            <h3>Got a Vintage Camera to Sell?</h3>
+            <p>Join hundreds of collectors trading through RetroClick every month.</p>
+            <a href="register.html" class="btn-primary-custom">Create an Account</a>
         </div>
     </section>
 
@@ -578,22 +285,6 @@
                 return;
             }
 
-            // If we have public items loaded, filter locally for quicker autocomplete/search
-            if (window.PUBLIC_ITEMS && window.PUBLIC_ITEMS.length) {
-                const searchTerm = query.toLowerCase();
-                const filtered = window.PUBLIC_ITEMS.filter(product => {
-                    return (
-                        String(product.camera_brand || '').toLowerCase().includes(searchTerm) ||
-                        String(product.camera_model || '').toLowerCase().includes(searchTerm) ||
-                        String(product.description || '').toLowerCase().includes(searchTerm) ||
-                        String(product.condition || '').toLowerCase().includes(searchTerm)
-                    );
-                });
-                displaySearchResults(filtered, query);
-                return;
-            }
-
-            // Fallback: request items (may require auth)
             $.ajax({
                 method: 'GET',
                 url: `${API_URL}/items`,
@@ -618,76 +309,6 @@
         }
 
         $(document).ready(function() {
-            // Preload public items for autocomplete and fast search
-            window.PUBLIC_ITEMS = [];
-            $.ajax({
-                method: 'GET',
-                url: `${API_URL}/public/items`,
-                dataType: 'json',
-                success: function(data) {
-                    window.PUBLIC_ITEMS = data.rows || [];
-                },
-                error: function() {
-                    console.log('Unable to load public items for autocomplete');
-                }
-            });
-
-            // Debounce helper
-            function debounce(fn, wait) {
-                let t;
-                return function() {
-                    const ctx = this, args = arguments;
-                    clearTimeout(t);
-                    t = setTimeout(function() { fn.apply(ctx, args); }, wait);
-                };
-            }
-
-            // Render suggestions
-            function showSuggestions(matches) {
-                const $s = $('#suggestions');
-                if (!matches.length) { $s.empty().hide(); return; }
-                let html = '';
-                matches.forEach(m => {
-                    const title = m.camera_model || m.description || '';
-                    const brand = m.camera_brand || '';
-                    html += `<div class="autocomplete-item" data-q="${escapeHtml(title)}">` +
-                        `<strong>${escapeHtml(title)}</strong> <small class="text-muted">${escapeHtml(brand)}</small>` +
-                        `</div>`;
-                });
-                $s.html(html).show();
-            }
-
-            function escapeHtml(str) {
-                return String(str || '').replace(/[&<>"]+/g, function(s) {
-                    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[s];
-                });
-            }
-
-            $('#searchInput').on('input', debounce(function() {
-                const q = $(this).val().trim().toLowerCase();
-                if (!q) { $('#suggestions').empty().hide(); return; }
-                const matches = (window.PUBLIC_ITEMS || []).filter(product => {
-                    const hay = (String(product.camera_brand || '') + ' ' + String(product.camera_model || '') + ' ' + String(product.description || '') + ' ' + String(product.condition || '')).toLowerCase();
-                    return hay.includes(q);
-                }).slice(0, 8);
-                showSuggestions(matches);
-            }, 180));
-
-            // Click suggestion
-            $(document).on('click', '.autocomplete-item', function() {
-                const q = $(this).attr('data-q');
-                $('#searchInput').val(q);
-                $('#suggestions').empty().hide();
-                performSearch();
-            });
-
-            // Hide suggestions when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#searchInput, #suggestions').length) {
-                    $('#suggestions').empty().hide();
-                }
-            });
-
             $('#searchBtn').on('click', function(e) {
                 e.preventDefault();
                 performSearch();
@@ -700,6 +321,39 @@
                 }
             });
         });
+
+        // -- decorative-only: hero spotlight follows the cursor --
+        (function () {
+            const hero = document.getElementById('heroSection');
+            if (!hero) return;
+            hero.addEventListener('mousemove', function (e) {
+                const rect = hero.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                hero.style.setProperty('--spot-x', x + '%');
+                hero.style.setProperty('--spot-y', y + '%');
+            });
+        })();
+
+        // -- decorative-only: trust badges fade in as they enter view --
+        (function () {
+            const badges = document.querySelectorAll('.trust-badge');
+            if (!badges.length || !('IntersectionObserver' in window)) {
+                badges.forEach(function (b) { b.classList.add('is-visible'); });
+                return;
+            }
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry, i) {
+                    if (entry.isIntersecting) {
+                        setTimeout(function () {
+                            entry.target.classList.add('is-visible');
+                        }, i * 90);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.2 });
+            badges.forEach(function (b) { observer.observe(b); });
+        })();
     </script>
 </body>
 </html>

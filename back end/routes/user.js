@@ -24,7 +24,7 @@ const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth')
 // User auth routes
 router.post('/register', registerUser)
 router.post('/login', loginUser)
-router.post('/update-profile', isAuthenticatedUser, upload.single('image'), updateUser)
+router.post('/update-profile', isAuthenticatedUser, upload.any(), updateUser)
 router.delete('/deactivate', deactivateUser)
 
 // Admin user management routes

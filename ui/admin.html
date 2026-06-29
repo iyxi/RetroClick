@@ -8,13 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="admin-os">
     <div class="os-titlebar">
         <span>
             <span class="os-dots"><span></span><span></span><span></span></span>
-            RETROCLICK ADMIN.SYS — v2.6
+            RETROCLICK
         </span>
         <span class="os-clock" id="osClock"></span>
     </div>
@@ -28,6 +31,7 @@
                 <button class="nav-item" onclick="showTab('orders')"><i class="fas fa-shopping-cart"></i> Orders</button>
                 <button class="nav-item" onclick="showTab('users')"><i class="fas fa-users"></i> Users</button>
                 <button class="nav-item" onclick="showTab('stock')"><i class="fas fa-warehouse"></i> Stock</button>
+                <button class="nav-item" onclick="showTab('sales')"><i class="fas fa-chart-pie"></i> Sales</button>
                 <hr style="background: #34495e;">
                 <button onclick="logout()" style="background: #e74c3c; margin-top: 20px;"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
@@ -140,8 +144,8 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Product Images (you can upload multiple)</label>
-                                    <input type="file" class="form-control" id="pimage" accept="image/*" multiple>
+                                    <label>Product Image</label>
+                                    <input type="file" class="form-control" id="pimage" accept="image/*">
                                 </div>
                                 <button type="button" class="btn btn-success" onclick="saveProduct()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="hideProductForm()">Cancel</button>
@@ -232,6 +236,86 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Sales Tab (design only — charts are static placeholders, no data wiring) -->
+                <div id="sales" class="tab-content">
+                    <h2>Sales Overview</h2>
+
+                    <div class="sales-toolbar">
+                        <div class="range-pills">
+                            <button type="button" class="active">7D</button>
+                            <button type="button">30D</button>
+                            <button type="button">90D</button>
+                            <button type="button">1Y</button>
+                        </div>
+                        <button type="button" class="btn btn-secondary"><i class="fas fa-file-export"></i> Export Report</button>
+                    </div>
+
+                    <div class="sales-grid">
+                        <div class="chart-panel">
+                            <h3>Revenue by Month</h3>
+                            <span class="chart-sub">Placeholder data &middot; chart styling only</span>
+                            <div class="bar-chart">
+                                <div class="bar"><div class="bar-fill" style="height: 55%;"></div><span class="bar-label">Jan</span></div>
+                                <div class="bar"><div class="bar-fill" style="height: 70%;"></div><span class="bar-label">Feb</span></div>
+                                <div class="bar"><div class="bar-fill" style="height: 48%;"></div><span class="bar-label">Mar</span></div>
+                                <div class="bar"><div class="bar-fill" style="height: 85%;"></div><span class="bar-label">Apr</span></div>
+                                <div class="bar"><div class="bar-fill" style="height: 62%;"></div><span class="bar-label">May</span></div>
+                                <div class="bar"><div class="bar-fill" style="height: 96%;"></div><span class="bar-label">Jun</span></div>
+                            </div>
+                        </div>
+
+                        <div class="chart-panel">
+                            <h3>Sales by Category</h3>
+                            <span class="chart-sub">Placeholder data &middot; chart styling only</span>
+                            <div class="donut-wrap">
+                                <div class="donut"></div>
+                                <div class="donut-legend">
+                                    <ul>
+                                        <li><span class="dot" style="background:var(--bordeaux)"></span> Cameras (40%)</li>
+                                        <li><span class="dot" style="background:var(--brass)"></span> Lenses (24%)</li>
+                                        <li><span class="dot" style="background:var(--cedar)"></span> Film (19%)</li>
+                                        <li><span class="dot" style="background:var(--ok-green)"></span> Accessories (17%)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-panel">
+                        <h3>Top Sellers Trend</h3>
+                        <span class="chart-sub">Placeholder data &middot; chart styling only</span>
+
+                        <div class="sparkline-row">
+                            <span class="spark-label">Canon AE-1</span>
+                            <svg viewBox="0 0 200 36" preserveAspectRatio="none">
+                                <polyline points="0,28 25,22 50,24 75,14 100,18 125,8 150,12 175,5 200,9" fill="none" stroke="#743014" stroke-width="2.5"/>
+                            </svg>
+                            <span class="spark-value">₱58.2k</span>
+                        </div>
+                        <div class="sparkline-row">
+                            <span class="spark-label">Leica M6</span>
+                            <svg viewBox="0 0 200 36" preserveAspectRatio="none">
+                                <polyline points="0,12 25,16 50,10 75,20 100,15 125,24 150,18 175,26 200,22" fill="none" stroke="#c9a24b" stroke-width="2.5"/>
+                            </svg>
+                            <span class="spark-value">₱41.7k</span>
+                        </div>
+                        <div class="sparkline-row">
+                            <span class="spark-label">Pentax K1000</span>
+                            <svg viewBox="0 0 200 36" preserveAspectRatio="none">
+                                <polyline points="0,30 25,26 50,28 75,18 100,22 125,12 150,16 175,6 200,10" fill="none" stroke="#84692b" stroke-width="2.5"/>
+                            </svg>
+                            <span class="spark-value">₱33.4k</span>
+                        </div>
+                        <div class="sparkline-row">
+                            <span class="spark-label">Minolta SRT 101</span>
+                            <svg viewBox="0 0 200 36" preserveAspectRatio="none">
+                                <polyline points="0,20 25,24 50,18 75,22 100,14 125,18 150,10 175,14 200,8" fill="none" stroke="#4c6b3f" stroke-width="2.5"/>
+                            </svg>
+                            <span class="spark-value">₱27.9k</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- /.col-md-9.admin-main -->
         </div>
@@ -253,6 +337,14 @@
         }
         updateOsClock();
         setInterval(updateOsClock, 1000);
+
+        // design-only: visually toggle the active range pill (Sales tab), no data wiring
+        document.querySelectorAll('.range-pills button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.range-pills button').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+            });
+        });
     </script>
 </body>
 </html>

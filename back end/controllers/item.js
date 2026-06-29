@@ -66,13 +66,16 @@ exports.createItem = async (req, res, next) => {
             low_stock_threshold
         } = req.body;
 
-        // support multiple uploaded files (field name: 'images')
-        let imagePath = null;
-        const uploaded = req.files || [];
-        const filePaths = uploaded.map(f => f.path.replace(/\\/g, "/"));
-        if (filePaths.length) {
-            imagePath = filePaths[0]; // primary image
-        }
+        const normalizeFiles = (files) => {
+            if (!files) return [];
+            if (Array.isArray(files)) {
+                return files;
+            }
+            return Object.values(files).flat();
+        };
+
+        const imageFiles = normalizeFiles(req.files);
+        const imagePaths = imageFiles.map(file => file.path.replace(/\\/g, '/'));
 
         if (!description || !cost_price || !sell_price || !camera_brand || !camera_model) {
             return res.status(400).json({ error: 'Missing required fields: description, cost_price, sell_price, camera_brand, camera_model' });
@@ -86,19 +89,18 @@ exports.createItem = async (req, res, next) => {
             camera_model,
             condition: condition || 'Good',
             year_released,
-            img_path: imagePath,
+            img_path: imagePaths.length ? JSON.stringify(imagePaths) : null,
             quantity: quantity !== undefined ? quantity : 0,
             low_stock_threshold: low_stock_threshold !== undefined ? low_stock_threshold : 5,
             is_visible: is_visible !== undefined ? is_visible : true,
             is_available: is_available !== undefined ? is_available : true
         });
 
-        // Create image records if files exist
-        if (filePaths.length) {
-            for (let i = 0; i < filePaths.length; i++) {
+        if (imagePaths.length) {
+            for (let i = 0; i < imagePaths.length; i++) {
                 await ItemImage.create({
                     item_id: item.item_id,
-                    image_path: filePaths[i],
+                    image_path: imagePaths[i],
                     is_primary: i === 0
                 });
             }
@@ -134,13 +136,16 @@ exports.updateItem = async (req, res, next) => {
             low_stock_threshold
         } = req.body;
 
-        // support multiple uploaded files on update
-        let imagePath = null;
-        const uploaded = req.files || [];
-        const filePaths = uploaded.map(f => f.path.replace(/\\/g, "/"));
-        if (filePaths.length) {
-            imagePath = filePaths[0];
-        }
+        const normalizeFiles = (files) => {
+            if (!files) return [];
+            if (Array.isArray(files)) {
+                return files;
+            }
+            return Object.values(files).flat();
+        };
+
+        const imageFiles = normalizeFiles(req.files);
+        const imagePaths = imageFiles.map(file => file.path.replace(/\\/g, '/'));
 
         if (!description || !cost_price || !sell_price || !camera_brand || !camera_model) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -160,24 +165,23 @@ exports.updateItem = async (req, res, next) => {
             is_available: is_available !== undefined ? is_available : true
         };
 
-        if (imagePath) {
-            updateData.img_path = imagePath;
-        }
-
-        // If multiple files uploaded, create ItemImage records
-        if (filePaths.length) {
-            for (let i = 0; i < filePaths.length; i++) {
-                await ItemImage.create({
-                    item_id: id,
-                    image_path: filePaths[i],
-                    is_primary: i === 0
-                });
-            }
+        if (imagePaths.length) {
+            updateData.img_path = JSON.stringify(imagePaths);
         }
 
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
         await Item.update(updateData, { where: { item_id: id } });
+
+        if (imagePaths.length) {
+            for (let i = 0; i < imagePaths.length; i++) {
+                await ItemImage.create({
+                    item_id: id,
+                    image_path: imagePaths[i],
+                    is_primary: i === 0
+                });
+            }
+        }
 
         return res.status(200).json({ 
             success: true,

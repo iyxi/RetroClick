@@ -14,7 +14,7 @@ router.get('/media', getAllMedia);
 router.get('/media/:id', getSingleMedia);
 // allow authenticated users to upload; limit to admins if desired
 // Only admins may create media entries/uploads via API
-router.post('/media', isAuthenticatedUser, isAdmin, upload.array('files', 10), createMedia);
+router.post('/media', isAuthenticatedUser, isAdmin, upload.any(), createMedia);
 router.put('/media/:id', isAuthenticatedUser, isAdmin, updateMedia);
 router.delete('/media/:id', isAuthenticatedUser, isAdmin, deleteMedia);
 

@@ -4,7 +4,8 @@
    poster type, and a film-sprocket motif used throughout.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap');
+/* Fonts are loaded via <link> tags in each page's <head> for reliability
+   (an @import here can be blocked/delayed under file:// and slower setups). */
 
 :root {
   /* -- palette -- */
@@ -500,6 +501,184 @@ textarea:focus {
   animation: heroIn .9s var(--ease) .22s both;
 }
 
+/* -- corner ribbon badge, vintage poster flourish -- */
+.hero-ribbon {
+  position: absolute;
+  top: 0;
+  left: 28px;
+  z-index: 3;
+  width: 56px;
+  padding: 10px 0 22px;
+  background: var(--rust);
+  color: var(--cream-deep);
+  font-family: var(--font-display);
+  font-size: .85rem;
+  letter-spacing: .06em;
+  text-align: center;
+  line-height: 1.3;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+  animation: ribbonDrop .6s var(--ease) both;
+}
+
+.hero-ribbon::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border: 10px solid transparent;
+  border-top-color: #6e2c10;
+  border-left-color: #6e2c10;
+}
+
+@keyframes ribbonDrop {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+/* -- ticket-stub tagline strip beneath hero copy -- */
+.hero-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 0 auto 2.2rem;
+  padding: .6rem 1.4rem;
+  border: 2px dashed var(--brass);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.18);
+  color: var(--brass-light);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: .85rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  animation: heroIn .85s var(--ease) .16s both;
+}
+
+.hero-ticket .dot-sep {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brass-light);
+  display: inline-block;
+}
+
+/* -- film-strip section divider, reused between sections -- */
+.section-divider {
+  height: 16px;
+  background-color: var(--mahogany);
+  background-image: radial-gradient(circle, var(--paper) 3.2px, transparent 3.6px);
+  background-size: 24px 16px;
+  background-position: center;
+  background-repeat: repeat-x;
+  position: relative;
+  z-index: 2;
+}
+
+/* -- trust badge row: numbered circular stamps -- */
+.trust-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3rem;
+  flex-wrap: wrap;
+  padding: 2.6rem 1rem;
+  background: rgba(255, 248, 234, 0.7);
+  border-bottom: 1px solid var(--line);
+}
+
+.trust-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .65rem;
+  max-width: 160px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .5s var(--ease), transform .5s var(--ease);
+}
+
+.trust-badge.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.trust-badge .stamp {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sage);
+  color: var(--mahogany);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  border: 3px dashed var(--brass);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+  transition: transform .3s var(--ease), background-color .3s var(--ease);
+}
+
+.trust-badge:hover .stamp {
+  background: var(--brass);
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.trust-badge h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.trust-badge p {
+  font-size: .82rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* -- interactive spotlight that follows the cursor across the hero -- */
+.hero-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle 220px at var(--spot-x, 50%) var(--spot-y, 30%), rgba(255, 248, 234, 0.18), transparent 70%);
+  transition: background-position .05s linear;
+}
+
+/* -- scrolling brand marquee, vintage sponsor-strip style -- */
+.brand-marquee {
+  background: var(--mahogany-2);
+  border-top: 2px solid var(--brass);
+  border-bottom: 2px solid var(--brass);
+  overflow: hidden;
+  padding: .9rem 0;
+}
+
+.brand-marquee .marquee-track {
+  display: flex;
+  gap: 3.5rem;
+  white-space: nowrap;
+  animation: marqueeScroll 22s linear infinite;
+  width: max-content;
+}
+
+.brand-marquee .marquee-track span {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: .08em;
+  color: var(--brass-light);
+  opacity: .85;
+  text-transform: uppercase;
+}
+
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* ============================================================
    SEARCH SECTION
    ============================================================ */
@@ -532,7 +711,11 @@ textarea:focus {
    ============================================================ */
 .section-title {
   color: var(--ink) !important;
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(201, 162, 75, 0.35);
   text-align: center;
   position: relative;
   padding-bottom: 1.1rem;
@@ -585,9 +768,24 @@ textarea:focus {
   position: relative;
 }
 
+.product-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--brass) 0 10px, var(--bordeaux) 10px 20px);
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+  z-index: 2;
+}
+
 .product-card:hover {
   transform: translateY(-8px) rotate(-0.4deg);
   box-shadow: 0 22px 40px rgba(116, 48, 20, 0.22);
+}
+
+.product-card:hover::before {
+  opacity: 1;
 }
 
 .product-image {
@@ -616,7 +814,7 @@ textarea:focus {
 }
 
 .product-body {
-  padding: 20px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   min-height: calc(100% - 250px);
@@ -636,17 +834,20 @@ textarea:focus {
 }
 
 .product-brand {
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+  opacity: .85;
 }
 
 .product-title {
   font-family: var(--font-heading);
-  font-size: 1.05rem;
-  margin-bottom: 0.75rem;
-  line-height: 1.35;
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.3;
 }
 
 .product-condition,
@@ -656,24 +857,35 @@ textarea:focus {
 }
 
 .product-price {
-  font-family: var(--font-body);
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: .02em;
+  font-weight: 400;
 }
 
-.product-condition {
+/* condition + stock read as a small tag row, Archivo-style filter chips */
+.product-condition,
+.product-stock {
   background: rgba(157, 145, 103, 0.2) !important;
   color: var(--ink) !important;
-  padding: 0.45rem 0.65rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: fit-content;
+  font-size: .76rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  margin-right: .4rem;
 }
 
-.product-stock {
-  color: var(--ink);
+.product-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: .75rem;
 }
 
 .product-actions {
@@ -697,22 +909,218 @@ textarea:focus {
   min-width: 120px;
 }
 
+/* optional corner badge — apply class="badge-corner badge-popular|badge-new|badge-pro"
+   to a child element inside .product-image if/when the markup supports it */
+.badge-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: .25rem .65rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--paper);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+}
+
+.badge-corner.badge-popular { background: var(--bordeaux); }
+.badge-corner.badge-new { background: var(--ok-green); }
+.badge-corner.badge-pro { background: var(--cedar); }
+
+/* ============================================================
+   SHOP PAGE (home.html) — banner + pill-tab toolbar
+   ============================================================ */
+.shop-banner {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(201, 162, 75, 0.18) 0deg 6deg, transparent 6deg 12deg),
+    linear-gradient(135deg, var(--mahogany), var(--mahogany-2));
+  color: var(--cream-deep);
+  text-align: center;
+  padding: 3.4rem 1rem 3rem;
+  border-bottom: 4px solid var(--brass);
+}
+
+.shop-banner h1 {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--brass-light);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  margin-bottom: .5rem;
+}
+
+.shop-banner .section-eyebrow {
+  color: var(--brass-light);
+  opacity: .85;
+}
+
+.shop-banner p {
+  font-family: var(--font-heading);
+  font-style: italic;
+  color: var(--cream-deep);
+  font-size: 1.05rem;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.shop-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.8rem 0 1.6rem;
+}
+
+.shop-tabs {
+  display: inline-flex;
+  gap: .4rem;
+  background: rgba(232, 209, 167, 0.35);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .3rem;
+}
+
+.shop-tabs button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: .85rem;
+  letter-spacing: .03em;
+  padding: .5rem 1.1rem;
+  border-radius: 999px;
+  box-shadow: none;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+
+.shop-tabs button:hover {
+  transform: none;
+  color: var(--ink);
+}
+
+.shop-tabs button.active {
+  background: var(--bordeaux);
+  color: var(--paper) !important;
+  box-shadow: 0 4px 10px rgba(116, 48, 20, 0.25);
+}
+
+.shop-tabs--brand button.active {
+  background: var(--cedar);
+}
+
+@media (max-width: 700px) {
+  .shop-toolbar { flex-direction: column; align-items: stretch; }
+  .shop-tabs { justify-content: center; }
+}
+
 .category-card {
   cursor: pointer;
-  transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+  padding: 2.4rem 1.5rem;
+  text-align: center;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+  position: relative;
+}
+
+.category-card::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px dashed var(--brass);
+  border-radius: calc(var(--radius) - 2px);
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+  pointer-events: none;
 }
 
 .category-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 18px 36px rgba(116, 48, 20, 0.2);
+  border-color: var(--brass);
+}
+
+.category-card:hover::before {
+  opacity: 1;
 }
 
 .category-icon {
-  transition: transform .35s var(--ease);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--sage);
+  color: var(--mahogany);
+  font-size: 1.6rem;
+  border: 2px solid var(--brass);
+  transition: transform .35s var(--ease), background-color .35s var(--ease);
 }
 
 .category-card:hover .category-icon {
   transform: rotate(-8deg) scale(1.15);
+  background: var(--brass);
+}
+
+.category-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* -- small uppercase label that sits above a section title -- */
+.section-eyebrow {
+  display: block;
+  text-align: center;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: .78rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--cedar);
+  margin-bottom: .5rem;
+}
+
+/* -- closing call-to-action poster banner -- */
+.cta-banner {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 4rem 1rem;
+  background:
+    repeating-linear-gradient(45deg, rgba(201,162,75,0.08) 0 12px, transparent 12px 24px),
+    linear-gradient(135deg, var(--mahogany), var(--mahogany-2));
+  border-top: 4px solid var(--brass);
+  border-bottom: 4px solid var(--brass);
+}
+
+.cta-banner h3 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--brass-light);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  margin-bottom: .6rem;
+}
+
+.cta-banner p {
+  font-family: var(--font-heading);
+  font-style: italic;
+  color: var(--cream-deep);
+  font-size: 1.1rem;
+  margin-bottom: 1.6rem;
 }
 
 /* card grid stagger */
@@ -1103,20 +1511,22 @@ body.admin-os::before {
   background: var(--mahogany-2) !important;
   border-right: 2px solid var(--brass);
   box-shadow: none;
-  padding: 1.1rem .9rem !important;
-  width: 240px;
+  padding: 1.4rem 1.1rem !important;
+  width: 270px;
+  max-width: 270px;
+  flex: 0 0 270px;
   flex-shrink: 0;
 }
 
 .sidebar h2 {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   letter-spacing: .05em;
   color: var(--brass-light) !important;
   border: 1px solid rgba(232, 201, 122, 0.35);
   background: rgba(0,0,0,0.18);
-  padding: .6rem .7rem;
-  margin-bottom: 1.1rem !important;
+  padding: .75rem .7rem;
+  margin-bottom: 1.4rem !important;
   text-align: center;
 }
 
@@ -1124,24 +1534,33 @@ body.admin-os::before {
 .sidebar button {
   display: flex !important;
   align-items: center;
-  gap: .55rem;
+  gap: .75rem;
   color: var(--cream-deep) !important;
   font-family: var(--font-body);
-  font-weight: 600;
-  font-size: .92rem;
+  font-weight: 700;
+  font-size: 1.08rem;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: 4px;
   background: rgba(0,0,0,0.14) !important;
-  margin: 0 0 6px 0 !important;
-  padding: .55rem .7rem !important;
-  transition: background-color .15s linear, border-color .15s linear;
+  margin: 0 0 9px 0 !important;
+  padding: .8rem .9rem !important;
+  line-height: 1.2;
+  transition: background-color .15s linear, border-color .15s linear, padding-left .15s linear;
+}
+
+.sidebar a i,
+.sidebar button i {
+  font-size: 1.05rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .sidebar a:hover,
 .sidebar button:hover {
   background: rgba(201, 162, 75, 0.22) !important;
   border-color: var(--brass);
-  padding-left: .7rem !important;
+  padding-left: 1.05rem !important;
 }
 
 .sidebar .nav-item.active {
@@ -1159,6 +1578,7 @@ body.admin-os::before {
 .sidebar hr {
   border-top: 1px dashed rgba(232, 201, 122, 0.35);
   opacity: 1;
+  margin: 1rem 0;
 }
 
 .admin-main {
@@ -1169,6 +1589,7 @@ body.admin-os::before {
     var(--paper);
   padding: 1.6rem;
 }
+
 
 .header {
   background: var(--cream-deep) !important;
@@ -1187,7 +1608,7 @@ body.admin-os::before {
 }
 
 .header::before {
-  content: "RETROCLICK // ADMIN.SYS";
+  content: "RETROCLICK";
   display: block;
   font-family: var(--font-body);
   font-size: .66rem;
@@ -1333,6 +1754,240 @@ body.admin-os::before {
   box-shadow: inset 0 0 0 1px rgba(63,29,16,0.08) !important;
   padding: 1rem !important;
 }
+
+/* ============================================================
+   SALES TAB — design-only charts (no data logic)
+   ============================================================ */
+.sales-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .sales-grid { grid-template-columns: 1fr; }
+}
+
+.chart-panel {
+  background: var(--cream-deep);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 rgba(63,29,16,0.18);
+  padding: 1.2rem 1.3rem;
+}
+
+.chart-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: .03em;
+  margin-bottom: .15rem;
+  border-bottom: 2px solid var(--brass);
+  display: inline-block;
+  padding-bottom: .2rem;
+}
+
+.chart-panel .chart-sub {
+  display: block;
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.1rem;
+  opacity: .8;
+}
+
+/* -- flat bar chart, pure CSS, decorative only -- */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 200px;
+  padding: 0 .25rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.bar-chart .bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.bar-chart .bar-fill {
+  width: 100%;
+  max-width: 34px;
+  border: 1px solid var(--ink);
+  border-radius: 3px 3px 0 0;
+  background: var(--bordeaux);
+  box-shadow: 2px 0 0 rgba(63,29,16,0.18) inset;
+  transition: transform .2s var(--ease);
+}
+
+.bar-chart .bar:nth-child(2) .bar-fill { background: var(--rust); }
+.bar-chart .bar:nth-child(3) .bar-fill { background: var(--cedar); }
+.bar-chart .bar:nth-child(4) .bar-fill { background: var(--brass); }
+.bar-chart .bar:nth-child(5) .bar-fill { background: var(--ok-green); }
+.bar-chart .bar:nth-child(6) .bar-fill { background: var(--bordeaux); }
+
+.bar-chart .bar:hover .bar-fill {
+  transform: scaleY(1.04);
+  filter: brightness(1.08);
+}
+
+.bar-chart .bar-label {
+  margin-top: .5rem;
+  font-size: .7rem;
+  letter-spacing: .04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* -- donut ring, pure CSS conic-gradient, decorative only -- */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.donut {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(
+    var(--bordeaux) 0deg 144deg,
+    var(--brass) 144deg 230deg,
+    var(--cedar) 230deg 300deg,
+    var(--ok-green) 300deg 360deg
+  );
+  border: 3px solid var(--ink);
+  position: relative;
+  box-shadow: 3px 3px 0 rgba(63,29,16,0.18);
+}
+
+.donut::after {
+  content: "";
+  position: absolute;
+  inset: 22px;
+  background: var(--cream-deep);
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  font-size: .85rem;
+}
+
+.donut-legend span.dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  margin-right: .5rem;
+}
+
+.donut-legend li {
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+
+.donut-legend ul {
+  padding-left: 0;
+  margin: 0;
+}
+
+/* -- sparkline strip, pure CSS polyline via SVG, decorative only -- */
+.sparkline-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px dashed var(--line);
+  padding-top: .9rem;
+  margin-top: .9rem;
+}
+
+.sparkline-row:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.sparkline-row .spark-label {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.sparkline-row svg {
+  flex: 1;
+  height: 36px;
+  overflow: visible;
+}
+
+.sparkline-row .spark-value {
+  width: 70px;
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--bordeaux);
+  flex-shrink: 0;
+}
+
+/* -- KPI strip reusing stat-card look but smaller, for sales filters -- */
+.sales-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sales-toolbar .range-pills {
+  display: inline-flex;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sales-toolbar .range-pills button {
+  border: none;
+  border-right: 1px solid var(--ink);
+  background: var(--cream-deep);
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .45rem .9rem;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.sales-toolbar .range-pills button:last-child {
+  border-right: none;
+}
+
+.sales-toolbar .range-pills button.active {
+  background: var(--bordeaux);
+  color: var(--paper);
+}
+
+.sales-toolbar .range-pills button:hover {
+  transform: none;
+  background: rgba(201,162,75,0.3);
+}
+
 
 /* flat 3-state buttons (Normal / Hover / Disabled), per the OS kit rules */
 .admin-main .btn,

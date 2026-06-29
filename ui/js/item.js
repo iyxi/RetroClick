@@ -45,7 +45,16 @@ $(document).ready(function () {
             {
                 data: null,
                 render: function (data, type, row) {
-                    return `<img src="${url}/${data.img_path}" width="50" height="60">`;
+                    let firstImage = '';
+                    if (data.img_path) {
+                        try {
+                            const images = JSON.parse(data.img_path);
+                            firstImage = Array.isArray(images) && images.length ? images[0] : '';
+                        } catch (err) {
+                            firstImage = data.img_path;
+                        }
+                    }
+                    return `<img src="${url}${encodeURI(firstImage)}" width="50" height="60">`;
                 }
             },
 
@@ -142,8 +151,17 @@ $(document).ready(function () {
                 $('#sell').val(sell_price)
                 $('#cost').val(cost_price)
                 $('#qty').val(quantity)
+                let previewImage = '';
                 if (img_path) {
-                    $("#iform").append(`<img src="${url}${img_path}" width='200px' height='200px' id="itemImage" />`)
+                    try {
+                        const images = JSON.parse(img_path);
+                        previewImage = Array.isArray(images) && images.length ? images[0] : '';
+                    } catch (err) {
+                        previewImage = img_path;
+                    }
+                }
+                if (previewImage) {
+                    $("#iform").append(`<img src="${url}${encodeURI(previewImage)}" width='200px' height='200px' id="itemImage" />`)
                 }
 
             },
