@@ -35,7 +35,7 @@ exports.getAllOrders = async (req, res) => {
                 return {
                     id: order.orderinfo_id,
                     customer_id: order.customer_id,
-                    total_amount: order.total_amount,
+                    total: order.total,
                     status: order.status,
                     created_at: order.date_placed,
                     User: user
@@ -45,7 +45,7 @@ exports.getAllOrders = async (req, res) => {
                 return {
                     id: order.orderinfo_id,
                     customer_id: order.customer_id,
-                    total_amount: order.total_amount,
+                    total: order.total,
                     status: order.status,
                     created_at: order.date_placed,
                     User: null
@@ -88,7 +88,7 @@ exports.getSingleOrder = async (req, res) => {
         const mappedOrder = {
             id: order.orderinfo_id,
             customer_id: order.customer_id,
-            total_amount: order.total_amount,
+            total: order.total,
             status: order.status,
             created_at: order.date_placed,
             User: order.Customer ? order.Customer.User : null,
@@ -118,15 +118,16 @@ exports.createOrder = async (req, res) => {
         }
 
         // Calculate total amount
-        let total_amount = 0;
+        let total = 0;
         for (const item of cart) {
-            total_amount += item.price * item.quantity;
+            total += item.price * item.quantity;
         }
 
         // Create order using the correct field names
         const order = await Order.create({
             customer_id: customer.customer_id,
-            total_amount,
+            total,
+            order_items: cart,
             status: 'Pending'
         });
 
@@ -147,7 +148,7 @@ exports.createOrder = async (req, res) => {
                 await sendEmail({
                     email: userRecord.email,
                     subject: 'Order Confirmation - RetroClick',
-                    message: `Your order #${order.orderinfo_id} has been placed successfully. Total: ₱${total_amount.toFixed(2)}`
+                    message: `Your order #${order.orderinfo_id} has been placed successfully. Total: ₱${total.toFixed(2)}`
                 });
             } catch (emailErr) {
                 console.log('Email error:', emailErr);
@@ -170,7 +171,7 @@ exports.createOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        const { total_amount, status } = req.body;
+        const { total, total_amount, status } = req.body;
 
         const order = await Order.findByPk(id);
         if (!order) {
@@ -178,7 +179,11 @@ exports.updateOrder = async (req, res) => {
         }
 
         const updateData = {};
-        if (total_amount !== undefined) updateData.total_amount = total_amount;
+        if (total !== undefined) {
+            updateData.total = total;
+        } else if (total_amount !== undefined) {
+            updateData.total = total_amount;
+        }
         if (status !== undefined) updateData.status = status;
 
         await Order.update(updateData, { where: { orderinfo_id: id } });

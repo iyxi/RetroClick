@@ -191,9 +191,8 @@ CREATE TABLE orderinfo (
   date_shipped DATETIME NULL,
 
   shipping DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  order_items JSON NOT NULL,
+  total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  order_items JSON NOT NULL DEFAULT '[]',
 
   status ENUM('Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
   payment_method ENUM('GCash', 'Card', 'COD') NULL,
@@ -405,7 +404,7 @@ SELECT
   oi.date_placed,
   oi.status,
   oi.payment_method,
-  oi.total_amount,
+  oi.total,
   c.customer_id,
   CONCAT(COALESCE(c.fname, ''), ' ', COALESCE(c.lname, '')) AS customer_name,
   c.phone,
