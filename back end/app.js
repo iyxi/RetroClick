@@ -13,9 +13,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Serve uploaded images from back end/images first (where multer stores by default),
-// then fall back to project-root images if present.
-app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/images', express.static(path.join(__dirname, '..', 'images')));
 app.use(express.static(path.join(__dirname, '../ui')));
 
