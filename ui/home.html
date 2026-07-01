@@ -74,6 +74,10 @@
           <button type="button" data-brand="Nikon">Nikon</button>
           <button type="button" data-brand="Leica">Leica</button>
         </div>
+        <div class="search-box">
+          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition...">
+          <button id="shopSearchBtn" type="button"><i class="fas fa-search"></i></button>
+        </div>
       </div>
 
       <div id="items"></div>
@@ -103,6 +107,43 @@
           });
         });
       });
+
+      // -- Search filter, independent of home.js internals --
+      // Rather than assuming home.js's data shape, this filters whatever
+      // .product-card elements are currently rendered inside #items by
+      // their visible text (title/brand/condition/price). A
+      // MutationObserver keeps it working after home.js re-renders the
+      // list (e.g. when a brand tab is clicked).
+      (function () {
+        const itemsRoot = document.getElementById('items');
+        const searchInput = document.getElementById('shopSearchInput');
+        const searchBtn = document.getElementById('shopSearchBtn');
+        if (!itemsRoot || !searchInput) return;
+
+        function applyFilter() {
+          const query = searchInput.value.trim().toLowerCase();
+          const cards = itemsRoot.querySelectorAll('.product-card');
+          cards.forEach(function (card) {
+            const haystack = card.textContent.toLowerCase();
+            const match = !query || haystack.includes(query);
+            // Hide the closest grid column wrapper if present, otherwise the card itself.
+            const wrapper = card.closest('[class*="col-"]') || card;
+            wrapper.style.display = match ? '' : 'none';
+          });
+        }
+
+        searchInput.addEventListener('input', applyFilter);
+        searchInput.addEventListener('keypress', function (e) {
+          if (e.which === 13) { e.preventDefault(); applyFilter(); }
+        });
+        if (searchBtn) {
+          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyFilter(); });
+        }
+
+        if ('MutationObserver' in window) {
+          new MutationObserver(applyFilter).observe(itemsRoot, { childList: true, subtree: true });
+        }
+      })();
     </script>
   </body>
 </html>

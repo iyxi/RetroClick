@@ -243,6 +243,49 @@ input[type="submit"]:active {
   transform: translateY(1px) scale(0.97);
 }
 
+/* -- fix: .btn-primary-custom / .btn-secondary-custom are plain <a> tags
+   in the markup (Shop Now, Learn More, Create an Account) — they never
+   carry Bootstrap's .btn class, so they picked up background-color from
+   the rules below but NO display/padding/border-radius/hover-lift
+   anywhere in the sheet. That's why they rendered as a bare rectangle
+   hugging the text. Give them real button geometry here, as pills with
+   generous breathing room. -- */
+.btn-primary-custom,
+.btn-secondary-custom {
+  display: inline-block;
+  padding: 0.9rem 2.4rem;
+  min-width: 160px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), background-color .18s var(--ease);
+}
+
+.btn-primary-custom:hover,
+.btn-secondary-custom:hover {
+  transform: translateY(-2px);
+  text-decoration: none !important;
+}
+
+.btn-primary-custom:active,
+.btn-secondary-custom:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+@media (max-width: 480px) {
+  .btn-primary-custom,
+  .btn-secondary-custom {
+    padding: 0.75rem 1.8rem;
+    min-width: 130px;
+  }
+}
+
 .btn-primary,
 .btn-info,
 .btn-primary-custom,
@@ -499,26 +542,6 @@ textarea:focus {
 .hero .btn-group {
   gap: 15px;
   animation: heroIn .9s var(--ease) .22s both;
-}
-
-/* -- fix: Bootstrap's .btn-group normally "joins" buttons together with
-   flat inner edges (only the outer corners get rounded). That's what was
-   making Shop Now / Learn More look like one squared-off rectangle.
-   Force every button in the group to be a fully independent pill with
-   generous horizontal padding so the text has room to breathe. -- */
-.hero .btn-group > .btn {
-  border-radius: 999px !important;
-  margin-left: 0 !important;
-  padding: 0.9rem 2.4rem;
-  min-width: 160px;
-  font-size: 0.95rem;
-}
-
-@media (max-width: 480px) {
-  .hero .btn-group > .btn {
-    padding: 0.75rem 1.8rem;
-    min-width: 130px;
-  }
 }
 
 /* -- corner ribbon badge, vintage poster flourish -- */
@@ -1174,16 +1197,6 @@ textarea:focus {
   color: var(--cream-deep);
   font-size: 1.1rem;
   margin-bottom: 1.6rem;
-}
-
-/* -- fix: was a tight rectangle hugging the text. Give it the same pill
-   treatment as the hero buttons, with enough padding that "Create an
-   Account" doesn't look cramped. -- */
-.cta-banner .btn {
-  display: inline-block;
-  border-radius: 999px !important;
-  padding: 0.9rem 2.6rem;
-  min-width: 200px;
 }
 
 /* card grid stagger */
