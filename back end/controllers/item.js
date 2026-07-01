@@ -1,4 +1,5 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const Item = db.Item;
 const ItemImage = db.ItemImage;
 
@@ -34,6 +35,39 @@ exports.getPublicItems = async (req, res) => {
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching public items', details: error.message });
+    }
+};
+
+// Public item search for homepage autocomplete and search
+exports.searchPublicItems = async (req, res) => {
+    try {
+        const q = String(req.query.q || req.query.query || '').trim();
+        const where = { is_visible: true, is_available: true };
+
+        if (q) {
+            const searchTerm = `%${q}%`;
+            where[Op.or] = [
+                { camera_brand: { [Op.like]: searchTerm } },
+                { camera_model: { [Op.like]: searchTerm } },
+                { description: { [Op.like]: searchTerm } },
+                { condition: { [Op.like]: searchTerm } }
+            ];
+        }
+
+        const items = await Item.findAll({
+            raw: false,
+            where,
+            include: [{
+                model: ItemImage,
+                attributes: ['image_id', 'image_path', 'is_primary', 'sort_order']
+            }],
+            order: [[ItemImage, 'sort_order', 'ASC'], ['created_at', 'DESC']]
+        });
+
+        return res.status(200).json({ rows: items, success: true, query: q });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error searching public items', details: error.message });
     }
 };
 

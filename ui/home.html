@@ -75,8 +75,9 @@
           <button type="button" data-brand="Leica">Leica</button>
         </div>
         <div class="search-box">
-          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition...">
+          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition..." autocomplete="off">
           <button id="shopSearchBtn" type="button"><i class="fas fa-search"></i></button>
+          <div id="shopSearchSuggestions" class="search-suggestions" hidden></div>
         </div>
       </div>
 
@@ -108,41 +109,111 @@
         });
       });
 
-      // -- Search filter, independent of home.js internals --
-      // Rather than assuming home.js's data shape, this filters whatever
-      // .product-card elements are currently rendered inside #items by
-      // their visible text (title/brand/condition/price). A
-      // MutationObserver keeps it working after home.js re-renders the
-      // list (e.g. when a brand tab is clicked).
+      // -- Search filter powered by the public items API and autocomplete --
       (function () {
         const itemsRoot = document.getElementById('items');
         const searchInput = document.getElementById('shopSearchInput');
         const searchBtn = document.getElementById('shopSearchBtn');
+        const suggestions = document.getElementById('shopSearchSuggestions');
         if (!itemsRoot || !searchInput) return;
 
-        function applyFilter() {
-          const query = searchInput.value.trim().toLowerCase();
-          const cards = itemsRoot.querySelectorAll('.product-card');
-          cards.forEach(function (card) {
-            const haystack = card.textContent.toLowerCase();
-            const match = !query || haystack.includes(query);
-            // Hide the closest grid column wrapper if present, otherwise the card itself.
-            const wrapper = card.closest('[class*="col-"]') || card;
-            wrapper.style.display = match ? '' : 'none';
-          });
+        const API_URL = 'http://localhost:3000/api/v1';
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
         }
 
-        searchInput.addEventListener('input', applyFilter);
+        function renderSuggestions(items, query) {
+          if (!suggestions) return;
+          if (!query) {
+            suggestions.innerHTML = '';
+            suggestions.hidden = true;
+            return;
+          }
+
+          const list = (items || []).slice(0, 6);
+          if (!list.length) {
+            suggestions.innerHTML = '';
+            suggestions.hidden = true;
+            return;
+          }
+
+          suggestions.innerHTML = list.map(function (item) {
+            const title = `${item.camera_brand || 'Vintage'} ${item.camera_model || ''}`.trim();
+            return `<button type="button" class="search-suggestion-item" data-query="${escapeHtml(title)}">
+              <span>
+                <div class="search-suggestion-title">${escapeHtml(title)}</div>
+                <div class="search-suggestion-meta">${escapeHtml(item.description || '')}</div>
+              </span>
+              <span class="search-suggestion-meta">₱${Number(item.sell_price || 0).toFixed(2)}</span>
+            </button>`;
+          }).join('');
+          suggestions.hidden = false;
+        }
+
+        function applyFilter(query) {
+          const normalizedQuery = (query || searchInput.value).trim().toLowerCase();
+          if (!normalizedQuery) {
+            suggestions.innerHTML = '';
+            suggestions.hidden = true;
+            if (itemsRoot) {
+              itemsRoot.querySelectorAll('.product-card').forEach(function (card) {
+                const wrapper = card.closest('[class*="col-"]') || card;
+                wrapper.style.display = '';
+              });
+            }
+            return;
+          }
+
+          fetch(`${API_URL}/public/items/search?q=${encodeURIComponent(normalizedQuery)}`)
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+              const items = data.rows || [];
+              renderSuggestions(items, normalizedQuery);
+              const matches = new Set(items.map(function (item) { return String(item.item_id); }));
+              const cards = itemsRoot.querySelectorAll('.product-card');
+              cards.forEach(function (card) {
+                const itemId = card.getAttribute('data-item-id');
+                const wrapper = card.closest('[class*="col-"]') || card;
+                wrapper.style.display = matches.has(String(itemId)) ? '' : 'none';
+              });
+            })
+            .catch(function () {
+              if (suggestions) {
+                suggestions.innerHTML = '';
+                suggestions.hidden = true;
+              }
+            });
+        }
+
+        searchInput.addEventListener('input', function () { applyFilter(searchInput.value); });
         searchInput.addEventListener('keypress', function (e) {
-          if (e.which === 13) { e.preventDefault(); applyFilter(); }
+          if (e.which === 13) { e.preventDefault(); applyFilter(searchInput.value); }
         });
         if (searchBtn) {
-          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyFilter(); });
+          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyFilter(searchInput.value); });
         }
 
-        if ('MutationObserver' in window) {
-          new MutationObserver(applyFilter).observe(itemsRoot, { childList: true, subtree: true });
-        }
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest('.search-box')) {
+            if (suggestions) {
+              suggestions.innerHTML = '';
+              suggestions.hidden = true;
+            }
+          }
+        });
+
+        document.addEventListener('click', function (e) {
+          const suggestion = e.target.closest('.search-suggestion-item');
+          if (!suggestion) return;
+          searchInput.value = suggestion.getAttribute('data-query');
+          applyFilter(searchInput.value);
+        });
       })();
     </script>
   </body>

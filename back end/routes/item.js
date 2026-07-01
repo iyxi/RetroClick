@@ -9,11 +9,13 @@ const { getAllItems,
     deleteItem,
     archiveItem,
     restoreItem,
-    getPublicItems } = require('../controllers/item')
+    getPublicItems,
+    searchPublicItems } = require('../controllers/item')
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth')
 
-router.get('/items', isAuthenticatedUser, getAllItems)
-router.get('/items/:id', isAuthenticatedUser, getSingleItem)
+router.get('/items', isAuthenticatedUser, isAdmin, getAllItems)
+router.get('/items/:id', isAuthenticatedUser, isAdmin, getSingleItem)
+router.get('/public/items/search', searchPublicItems)
 router.get('/public/items', getPublicItems)
 router.post('/items', isAuthenticatedUser, isAdmin, upload.array('images', 5), createItem)
 // Allow multipart POST to update items (some clients can't send multipart PUT)

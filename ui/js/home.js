@@ -68,7 +68,7 @@ $(document).ready(function () {
                 const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
                      const imagesAttrEscaped = JSON.stringify(imagesList).replace(/</g, '\\u003c');
                                 const item = `<div class="col-md-3 mb-4">
-                                <div class="card h-100 card-carousel" data-images='${imagesAttrEscaped}' data-index="0">
+                                <div class="card h-100 card-carousel product-card" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
                                 <div class="card-image-wrap">
                                     <button type="button" class="carousel-btn carousel-prev" aria-label="Previous image">‹</button>
                                     <img src="${imagePath}" class="card-img-top" alt="${value.description}" />
