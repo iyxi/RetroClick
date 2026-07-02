@@ -32,95 +32,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
         integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <script src="js/cart.js"></script>
-    <title>Cart</title>
 </head>
 
 <body>
     <div id="header"></div>
-    <div class="container">
+
+    <div class="container my-5">
         <div class="cart-page-title">
             <h1>Your Cart</h1>
-            <span class="cart-count-pill" id="cartCountPill">3 items</span>
+            <span class="cart-count-pill" id="cartCountPill">0 items</span>
         </div>
 
         <div class="cart-layout">
             <div class="cart-main">
-                <!--
-                  #cartTable is the exact mount point cart.js already renders
-                  into. The rows below are sample data only, structured to
-                  match the columns the ticket-styling in style.css already
-                  expects (Image / Item / Price / Qty / Subtotal / Remove) —
-                  so this is ready for cart.js to replace via something like
-                  $('#cartTable').html(...) once that file is wired back in.
-                -->
                 <div class="table-responsive">
-                    <table class="table" id="cartTable">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Item</th>
-                                <th>Price</th>
-                                <th>Qty</th>
-                                <th>Subtotal</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><div class="item-thumb"><i class="fas fa-camera-retro"></i></div></td>
-                                <td>
-                                    <div class="item-cell-name">Canon AE-1 Program</div>
-                                    <div class="item-cell-meta">35mm SLR &middot; Excellent</div>
-                                </td>
-                                <td class="row-price" data-price="8500">₱8,500.00</td>
-                                <td>
-                                    <div class="qty-stepper">
-                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
-                                        <input type="number" class="qty-input" value="1" min="1" aria-label="Quantity">
-                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
-                                    </div>
-                                </td>
-                                <td class="row-subtotal">₱8,500.00</td>
-                                <td><button type="button" class="btn-remove" aria-label="Remove Canon AE-1 Program">&times;</button></td>
-                            </tr>
-                            <tr>
-                                <td><div class="item-thumb"><i class="fas fa-camera-retro"></i></div></td>
-                                <td>
-                                    <div class="item-cell-name">Nikon FE2 Body Only</div>
-                                    <div class="item-cell-meta">35mm SLR &middot; Mint</div>
-                                </td>
-                                <td class="row-price" data-price="11200">₱11,200.00</td>
-                                <td>
-                                    <div class="qty-stepper">
-                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
-                                        <input type="number" class="qty-input" value="1" min="1" aria-label="Quantity">
-                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
-                                    </div>
-                                </td>
-                                <td class="row-subtotal">₱11,200.00</td>
-                                <td><button type="button" class="btn-remove" aria-label="Remove Nikon FE2 Body Only">&times;</button></td>
-                            </tr>
-                            <tr>
-                                <td><div class="item-thumb"><i class="fas fa-film"></i></div></td>
-                                <td>
-                                    <div class="item-cell-name">Kodak Portra 400 (3-Pack)</div>
-                                    <div class="item-cell-meta">35mm Colour Film &middot; New</div>
-                                </td>
-                                <td class="row-price" data-price="1450">₱1,450.00</td>
-                                <td>
-                                    <div class="qty-stepper">
-                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
-                                        <input type="number" class="qty-input" value="2" min="1" aria-label="Quantity">
-                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
-                                    </div>
-                                </td>
-                                <td class="row-subtotal">₱2,900.00</td>
-                                <td><button type="button" class="btn-remove" aria-label="Remove Kodak Portra 400">&times;</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div id="cartTable"></div>
                 </div>
 
                 <a href="home.html" class="btn-secondary-custom mt-3">Continue Shopping</a>
