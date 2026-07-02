@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
         integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome was missing on this page too — added so the header,
+         thumbnail placeholders and summary trust icons below all render. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
@@ -37,18 +40,260 @@
 <body>
     <div id="header"></div>
     <div class="container">
-    <h1>Your Cart</h1>
-    <div id="cartTable"></div>
-    <a href="home.html" class="btn btn-secondary mt-3">Continue Shopping</a>
-    <button id="checkoutBtn" class="btn btn-primary mt-3">Go to Checkout</button>
-</div>
-<div id="footer"></div>
-<script>
-    $(document).ready(function () {
-        $('#checkoutBtn').on('click', function () {
-            window.location.href = 'checkout.html';
+        <div class="cart-page-title">
+            <h1>Your Cart</h1>
+            <span class="cart-count-pill" id="cartCountPill">3 items</span>
+        </div>
+
+        <div class="cart-layout">
+            <div class="cart-main">
+                <!--
+                  #cartTable is the exact mount point cart.js already renders
+                  into. The rows below are sample data only, structured to
+                  match the columns the ticket-styling in style.css already
+                  expects (Image / Item / Price / Qty / Subtotal / Remove) —
+                  so this is ready for cart.js to replace via something like
+                  $('#cartTable').html(...) once that file is wired back in.
+                -->
+                <div class="table-responsive">
+                    <table class="table" id="cartTable">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><div class="item-thumb"><i class="fas fa-camera-retro"></i></div></td>
+                                <td>
+                                    <div class="item-cell-name">Canon AE-1 Program</div>
+                                    <div class="item-cell-meta">35mm SLR &middot; Excellent</div>
+                                </td>
+                                <td class="row-price" data-price="8500">₱8,500.00</td>
+                                <td>
+                                    <div class="qty-stepper">
+                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
+                                        <input type="number" class="qty-input" value="1" min="1" aria-label="Quantity">
+                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
+                                    </div>
+                                </td>
+                                <td class="row-subtotal">₱8,500.00</td>
+                                <td><button type="button" class="btn-remove" aria-label="Remove Canon AE-1 Program">&times;</button></td>
+                            </tr>
+                            <tr>
+                                <td><div class="item-thumb"><i class="fas fa-camera-retro"></i></div></td>
+                                <td>
+                                    <div class="item-cell-name">Nikon FE2 Body Only</div>
+                                    <div class="item-cell-meta">35mm SLR &middot; Mint</div>
+                                </td>
+                                <td class="row-price" data-price="11200">₱11,200.00</td>
+                                <td>
+                                    <div class="qty-stepper">
+                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
+                                        <input type="number" class="qty-input" value="1" min="1" aria-label="Quantity">
+                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
+                                    </div>
+                                </td>
+                                <td class="row-subtotal">₱11,200.00</td>
+                                <td><button type="button" class="btn-remove" aria-label="Remove Nikon FE2 Body Only">&times;</button></td>
+                            </tr>
+                            <tr>
+                                <td><div class="item-thumb"><i class="fas fa-film"></i></div></td>
+                                <td>
+                                    <div class="item-cell-name">Kodak Portra 400 (3-Pack)</div>
+                                    <div class="item-cell-meta">35mm Colour Film &middot; New</div>
+                                </td>
+                                <td class="row-price" data-price="1450">₱1,450.00</td>
+                                <td>
+                                    <div class="qty-stepper">
+                                        <button type="button" class="qty-minus" aria-label="Decrease quantity">&minus;</button>
+                                        <input type="number" class="qty-input" value="2" min="1" aria-label="Quantity">
+                                        <button type="button" class="qty-plus" aria-label="Increase quantity">+</button>
+                                    </div>
+                                </td>
+                                <td class="row-subtotal">₱2,900.00</td>
+                                <td><button type="button" class="btn-remove" aria-label="Remove Kodak Portra 400">&times;</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <a href="home.html" class="btn-secondary-custom mt-3">Continue Shopping</a>
+            </div>
+
+            <aside class="order-summary">
+                <div class="summary-title">Order Summary</div>
+
+                <div class="summary-voucher">
+                    <input type="text" id="voucherInput" placeholder="Discount voucher">
+                    <button type="button" id="voucherApplyBtn" class="btn-secondary-custom">Apply</button>
+                </div>
+                <div class="summary-voucher-msg" id="voucherMsg"></div>
+
+                <div class="summary-row">
+                    <span class="label">Subtotal</span>
+                    <span class="value" id="summarySubtotal">₱22,600.00</span>
+                </div>
+                <div class="summary-row discount" id="summaryDiscountRow" style="display:none;">
+                    <span class="label">Discount</span>
+                    <span class="value" id="summaryDiscount">&minus;₱0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span class="label">Delivery Fee</span>
+                    <span class="value" id="summaryShipping">₱150.00</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span class="label">Total</span>
+                    <span class="value" id="summaryTotal">₱22,750.00</span>
+                </div>
+
+                <button id="checkoutBtn" type="button" class="summary-cta">Checkout Now</button>
+
+                <div class="summary-warranty">
+                    <i class="fas fa-circle-check"></i>
+                    <span>90-day authenticity guarantee on every camera body we ship.</span>
+                </div>
+
+                <div class="summary-trust">
+                    <div class="summary-trust-item"><i class="fas fa-lock"></i>Secure Checkout</div>
+                    <div class="summary-trust-item"><i class="fas fa-truck-fast"></i>Insured Shipping</div>
+                    <div class="summary-trust-item"><i class="fas fa-rotate-left"></i>Easy Returns</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <div id="footer"></div>
+    <script>
+        $(document).ready(function () {
+            $('#checkoutBtn').on('click', function () {
+                window.location.href = 'checkout.html';
+            });
         });
-    });
-</script>
+    </script>
+
+    <script>
+        // -- Demo-only interactivity for the sample rows above (quantity
+        //    stepper, remove, and a small voucher gag) so the new layout
+        //    has something real to demonstrate. All of it keys off classes
+        //    (.qty-input, .row-price, .row-subtotal, [class*="remove"]) or
+        //    ids in the summary sidebar, so once cart.js renders real rows
+        //    into #cartTable with the same classes, this keeps working —
+        //    and if cart.js instead brings its own totals logic, this can
+        //    simply be removed. --
+        (function () {
+            const cartTable = document.getElementById('cartTable');
+            if (!cartTable) return;
+
+            function formatPeso(n) {
+                return '\u20b1' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function updateCartCountPill() {
+                const pill = document.getElementById('cartCountPill');
+                if (!pill) return;
+                let count = 0;
+                cartTable.querySelectorAll('tbody tr .qty-input').forEach(function (input) {
+                    count += parseInt(input.value, 10) || 0;
+                });
+                pill.textContent = count + (count === 1 ? ' item' : ' items');
+            }
+
+            function recalcCartTotals() {
+                let subtotal = 0;
+                cartTable.querySelectorAll('tbody tr').forEach(function (row) {
+                    const priceEl = row.querySelector('.row-price');
+                    const qtyEl = row.querySelector('.qty-input');
+                    const subEl = row.querySelector('.row-subtotal');
+                    if (!priceEl || !qtyEl || !subEl) return;
+                    const price = parseFloat(priceEl.dataset.price || '0');
+                    const qty = Math.max(parseInt(qtyEl.value, 10) || 0, 0);
+                    const sub = price * qty;
+                    subEl.textContent = formatPeso(sub);
+                    subtotal += sub;
+                });
+
+                const shipping = subtotal > 0 ? 150 : 0;
+                const discountPct = window.__retroDiscountPct || 0;
+                const discount = subtotal * discountPct;
+                const total = Math.max(subtotal - discount + shipping, 0);
+
+                const subtotalEl = document.getElementById('summarySubtotal');
+                const shippingEl = document.getElementById('summaryShipping');
+                const discountRow = document.getElementById('summaryDiscountRow');
+                const discountEl = document.getElementById('summaryDiscount');
+                const totalEl = document.getElementById('summaryTotal');
+
+                if (subtotalEl) subtotalEl.textContent = formatPeso(subtotal);
+                if (shippingEl) shippingEl.textContent = formatPeso(shipping);
+                if (discount > 0 && discountRow && discountEl) {
+                    discountRow.style.display = 'flex';
+                    discountEl.textContent = '\u2212' + formatPeso(discount);
+                } else if (discountRow) {
+                    discountRow.style.display = 'none';
+                }
+                if (totalEl) totalEl.textContent = formatPeso(total);
+
+                updateCartCountPill();
+            }
+
+            function wireRow(row) {
+                const stepper = row.querySelector('.qty-stepper');
+                if (!stepper) return;
+                const input = stepper.querySelector('.qty-input');
+                const minus = stepper.querySelector('.qty-minus');
+                const plus = stepper.querySelector('.qty-plus');
+                if (!input) return;
+
+                if (minus) {
+                    minus.addEventListener('click', function () {
+                        input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1);
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                }
+                if (plus) {
+                    plus.addEventListener('click', function () {
+                        input.value = (parseInt(input.value, 10) || 1) + 1;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                }
+                input.addEventListener('change', recalcCartTotals);
+                input.addEventListener('input', recalcCartTotals);
+
+                const removeBtn = row.querySelector('[class*="remove"]');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function () {
+                        row.remove();
+                        recalcCartTotals();
+                    });
+                }
+            }
+
+            cartTable.querySelectorAll('tbody tr').forEach(wireRow);
+
+            const applyBtn = document.getElementById('voucherApplyBtn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function () {
+                    const codeInput = document.getElementById('voucherInput');
+                    const code = ((codeInput && codeInput.value) || '').trim().toUpperCase();
+                    const msg = document.getElementById('voucherMsg');
+                    if (code === 'RETRO10') {
+                        window.__retroDiscountPct = 0.10;
+                        if (msg) { msg.textContent = 'RETRO10 applied \u2014 10% off your order.'; msg.style.color = 'var(--ok-green)'; }
+                    } else {
+                        window.__retroDiscountPct = 0;
+                        if (msg) { msg.textContent = code ? 'That code didn\u2019t match anything.' : ''; msg.style.color = 'var(--rust)'; }
+                    }
+                    recalcCartTotals();
+                });
+            }
+
+            recalcCartTotals();
+        })();
+    </script>
 </body>
 </html>

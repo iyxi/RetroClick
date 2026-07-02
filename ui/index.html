@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RetroClick - Vintage Camera Store</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
@@ -74,9 +74,8 @@
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search by brand, model, or condition..." autocomplete="off">
+                        <input type="text" id="searchInput" placeholder="Search by brand, model, or condition...">
                         <button id="searchBtn" type="button"><i class="fas fa-search"></i></button>
-                        <div id="searchSuggestions" class="search-suggestions" hidden></div>
                     </div>
                 </div>
             </div>
@@ -279,63 +278,34 @@
             window.location.href = 'home.html?brand=' + brand;
         }
 
-        function performSearch(query = $('#searchInput').val().trim()) {
+        function performSearch() {
+            const query = $('#searchInput').val().trim();
             if (!query) {
                 $('#searchResults').html('');
-                $('#searchSuggestions').html('').attr('hidden', true);
                 return;
             }
 
             $.ajax({
                 method: 'GET',
-                url: `${API_URL}/public/items/search`,
-                data: { q: query },
+                url: `${API_URL}/items`,
                 dataType: 'json',
                 success: function(data) {
                     const products = data.rows || [];
-                    displaySearchResults(products, query);
-                    renderSuggestions(products, query);
+                    const filtered = products.filter(product => {
+                        const searchTerm = query.toLowerCase();
+                        return (
+                            String(product.camera_brand || '').toLowerCase().includes(searchTerm) ||
+                            String(product.camera_model || '').toLowerCase().includes(searchTerm) ||
+                            String(product.description || '').toLowerCase().includes(searchTerm) ||
+                            String(product.condition || '').toLowerCase().includes(searchTerm)
+                        );
+                    });
+                    displaySearchResults(filtered, query);
                 },
                 error: function() {
                     console.log('Error searching products');
-                    $('#searchResults').html('<p class="text-center mt-3">Unable to load search results right now.</p>');
                 }
             });
-        }
-
-        function renderSuggestions(products, query) {
-            const suggestions = $('#searchSuggestions');
-            if (!query) {
-                suggestions.html('').attr('hidden', true);
-                return;
-            }
-
-            const items = (products || []).slice(0, 6);
-            if (!items.length) {
-                suggestions.html('').attr('hidden', true);
-                return;
-            }
-
-            const html = items.map(product => `
-                <button type="button" class="search-suggestion-item" data-query="${escapeHtml(String(product.camera_brand || product.camera_model || product.description || ''))}">
-                    <span>
-                        <div class="search-suggestion-title">${escapeHtml(product.camera_brand || 'Vintage')} ${escapeHtml(product.camera_model || '')}</div>
-                        <div class="search-suggestion-meta">${escapeHtml(product.description || '')}</div>
-                    </span>
-                    <span class="search-suggestion-meta">₱${parseFloat(product.sell_price || 0).toFixed(2)}</span>
-                </button>
-            `).join('');
-
-            suggestions.html(html).removeAttr('hidden');
-        }
-
-        function escapeHtml(value) {
-            return String(value)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
         }
 
         $(document).ready(function() {
@@ -344,43 +314,10 @@
                 performSearch();
             });
 
-            $('#searchInput').on('input', function() {
-                const query = $(this).val().trim();
-                if (!query) {
-                    $('#searchSuggestions').html('').attr('hidden', true);
-                    $('#searchResults').html('');
-                    return;
-                }
-
-                $.ajax({
-                    method: 'GET',
-                    url: `${API_URL}/public/items/search`,
-                    data: { q: query },
-                    dataType: 'json',
-                    success: function(data) {
-                        const products = data.rows || [];
-                        renderSuggestions(products, query);
-                    }
-                });
-            });
-
             $('#searchInput').on('keypress', function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
                     performSearch();
-                }
-            });
-
-            $(document).on('click', '.search-suggestion-item', function() {
-                const query = $(this).data('query');
-                $('#searchInput').val(query);
-                $('#searchSuggestions').html('').attr('hidden', true);
-                performSearch(query);
-            });
-
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.search-box').length) {
-                    $('#searchSuggestions').html('').attr('hidden', true);
                 }
             });
         });

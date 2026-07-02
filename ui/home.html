@@ -18,6 +18,10 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
+    <!-- Font Awesome was missing from this page entirely, so the header/cart
+         icons and the new filter-sidebar icons below were invisible. Adding
+         it here, pinned to the same stable release used on index.html. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
@@ -75,13 +79,245 @@
           <button type="button" data-brand="Leica">Leica</button>
         </div>
         <div class="search-box">
-          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition..." autocomplete="off">
+          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition...">
           <button id="shopSearchBtn" type="button"><i class="fas fa-search"></i></button>
-          <div id="shopSearchSuggestions" class="search-suggestions" hidden></div>
         </div>
       </div>
 
-      <div id="items"></div>
+      <div class="shop-layout">
+        <!-- ================= FILTER SIDEBAR =================
+             New. Filters the .product-card elements that home.js
+             renders into #items below — it never touches how those
+             cards get there, only whether each one is shown. -->
+        <aside class="shop-filters">
+          <div class="shop-filters-title">
+            Filter Options
+            <button type="button" class="clear-filters" id="clearFiltersBtn">Clear All</button>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group-title">Condition</div>
+            <label class="filter-option"><input type="checkbox" class="filter-condition" value="Mint"> Mint</label>
+            <label class="filter-option"><input type="checkbox" class="filter-condition" value="Excellent"> Excellent</label>
+            <label class="filter-option"><input type="checkbox" class="filter-condition" value="Good"> Good</label>
+            <label class="filter-option"><input type="checkbox" class="filter-condition" value="Fair"> Fair</label>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group-title">Brand</div>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Canon"> Canon</label>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Nikon"> Nikon</label>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Leica"> Leica</label>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Pentax"> Pentax</label>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Minolta"> Minolta</label>
+            <label class="filter-option"><input type="checkbox" class="filter-brand" value="Olympus"> Olympus</label>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group-title">Price</div>
+            <div class="filter-price-values">
+              <span>₱0</span>
+              <span id="priceMaxLabel">Any</span>
+            </div>
+            <input type="range" id="priceRange" min="0" max="70000" step="500" value="70000">
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group-title">Availability</div>
+            <label class="filter-option"><input type="checkbox" id="inStockOnly"> In Stock Only</label>
+          </div>
+        </aside>
+
+        <!-- ================= MAIN GRID ================= -->
+        <div class="shop-main">
+          <div class="active-filter-chips" id="activeFilterChips"></div>
+
+          <div class="shop-results-bar">
+            <div class="shop-results-count" id="resultsCount"><strong>8</strong> cameras found</div>
+            <div class="shop-sort">
+              Sort by
+              <select id="sortSelect">
+                <option value="default">Featured</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="name-asc">Name: A&ndash;Z</option>
+              </select>
+            </div>
+          </div>
+
+          <!--
+            #items is the exact mount point home.js already renders into
+            (confirmed by the .product-card hook further down this file).
+            The eight cards below are sample data only, so the sidebar
+            filters and layout have something real to demonstrate — the
+            moment home.js runs and replaces this innerHTML, real products
+            take over automatically and the filters keep working on them
+            because they key off the same .product-card / .product-brand /
+            .product-condition / .product-price / .product-stock classes.
+          -->
+          <div id="items" class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image">
+                  <i class="fas fa-camera"></i>
+                  <span class="badge-corner badge-popular">Popular</span>
+                </div>
+                <div class="product-body">
+                  <div class="product-brand">Canon</div>
+                  <div class="product-title">Canon AE-1 Program</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Excellent</span>
+                    <span class="product-stock">Stock: 4</span>
+                  </div>
+                  <div class="product-price">₱8,500.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Nikon</div>
+                  <div class="product-title">Nikon FM2 Body</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Mint</span>
+                    <span class="product-stock">Stock: 2</span>
+                  </div>
+                  <div class="product-price">₱12,900.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image">
+                  <i class="fas fa-camera"></i>
+                  <span class="badge-corner badge-new">Rare Find</span>
+                </div>
+                <div class="product-body">
+                  <div class="product-brand">Leica</div>
+                  <div class="product-title">Leica M6 Rangefinder</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Excellent</span>
+                    <span class="product-stock">Stock: 1</span>
+                  </div>
+                  <div class="product-price">₱68,000.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Pentax</div>
+                  <div class="product-title">Pentax K1000</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Good</span>
+                    <span class="product-stock">Stock: 6</span>
+                  </div>
+                  <div class="product-price">₱5,200.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Minolta</div>
+                  <div class="product-title">Minolta X-700</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Good</span>
+                    <span class="product-stock">Stock: 3</span>
+                  </div>
+                  <div class="product-price">₱6,750.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Olympus</div>
+                  <div class="product-title">Olympus OM-1</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Fair</span>
+                    <span class="product-stock">Stock: 0</span>
+                  </div>
+                  <div class="product-price">₱4,300.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart" disabled>Out of Stock</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Canon</div>
+                  <div class="product-title">Canon A-1</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Mint</span>
+                    <span class="product-stock">Stock: 2</span>
+                  </div>
+                  <div class="product-price">₱9,900.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="product-card">
+                <div class="product-image"><i class="fas fa-camera"></i></div>
+                <div class="product-body">
+                  <div class="product-brand">Nikon</div>
+                  <div class="product-title">Nikon F3 HP</div>
+                  <div class="product-tags">
+                    <span class="product-condition">Excellent</span>
+                    <span class="product-stock">Stock: 1</span>
+                  </div>
+                  <div class="product-price">₱15,400.00</div>
+                  <div class="product-actions">
+                    <button class="btn-details">Details</button>
+                    <button class="btn-cart">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="shop-no-results" id="shopNoResults">No cameras match your filters &mdash; try widening your search.</div>
+        </div>
+      </div>
     </div>
 
     <div id="footer"></div>
@@ -109,111 +345,195 @@
         });
       });
 
-      // -- Search filter powered by the public items API and autocomplete --
+      // -- Filter sidebar + search + sort, independent of home.js internals --
+      // Same philosophy as the tab toggling above: rather than assuming
+      // home.js's data shape, this reads whatever .product-card elements are
+      // currently rendered inside #items (title/brand/condition/price/stock
+      // all come from the classes already styled in style.css) and shows or
+      // hides each one. A MutationObserver re-applies the current filter
+      // state every time #items changes for any reason — including a brand
+      // pill click above re-rendering the grid — so filters keep working
+      // no matter what triggered the re-render.
       (function () {
         const itemsRoot = document.getElementById('items');
+        if (!itemsRoot) return;
+
         const searchInput = document.getElementById('shopSearchInput');
         const searchBtn = document.getElementById('shopSearchBtn');
-        const suggestions = document.getElementById('shopSearchSuggestions');
-        if (!itemsRoot || !searchInput) return;
+        const inStockOnly = document.getElementById('inStockOnly');
+        const priceRange = document.getElementById('priceRange');
+        const priceMaxLabel = document.getElementById('priceMaxLabel');
+        const clearBtn = document.getElementById('clearFiltersBtn');
+        const chipsRoot = document.getElementById('activeFilterChips');
+        const noResults = document.getElementById('shopNoResults');
+        const resultsCount = document.getElementById('resultsCount');
+        const sortSelect = document.getElementById('sortSelect');
 
-        const API_URL = 'http://localhost:3000/api/v1';
+        function conditionBoxes() { return Array.from(document.querySelectorAll('.filter-condition')); }
+        function brandBoxes() { return Array.from(document.querySelectorAll('.filter-brand')); }
 
-        function escapeHtml(value) {
-          return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        function formatPeso(n) {
+          return '\u20b1' + Math.round(n).toLocaleString('en-PH');
         }
 
-        function renderSuggestions(items, query) {
-          if (!suggestions) return;
-          if (!query) {
-            suggestions.innerHTML = '';
-            suggestions.hidden = true;
-            return;
-          }
-
-          const list = (items || []).slice(0, 6);
-          if (!list.length) {
-            suggestions.innerHTML = '';
-            suggestions.hidden = true;
-            return;
-          }
-
-          suggestions.innerHTML = list.map(function (item) {
-            const title = `${item.camera_brand || 'Vintage'} ${item.camera_model || ''}`.trim();
-            return `<button type="button" class="search-suggestion-item" data-query="${escapeHtml(title)}">
-              <span>
-                <div class="search-suggestion-title">${escapeHtml(title)}</div>
-                <div class="search-suggestion-meta">${escapeHtml(item.description || '')}</div>
-              </span>
-              <span class="search-suggestion-meta">₱${Number(item.sell_price || 0).toFixed(2)}</span>
-            </button>`;
-          }).join('');
-          suggestions.hidden = false;
+        function parsePrice(text) {
+          const cleaned = (text || '').replace(/[^\d.]/g, '');
+          return parseFloat(cleaned) || 0;
         }
 
-        function applyFilter(query) {
-          const normalizedQuery = (query || searchInput.value).trim().toLowerCase();
-          if (!normalizedQuery) {
-            suggestions.innerHTML = '';
-            suggestions.hidden = true;
-            if (itemsRoot) {
-              itemsRoot.querySelectorAll('.product-card').forEach(function (card) {
-                const wrapper = card.closest('[class*="col-"]') || card;
-                wrapper.style.display = '';
-              });
-            }
-            return;
-          }
+        function parseStock(text) {
+          const match = (text || '').match(/(\d+)/);
+          return match ? parseInt(match[1], 10) : 0;
+        }
 
-          fetch(`${API_URL}/public/items/search?q=${encodeURIComponent(normalizedQuery)}`)
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-              const items = data.rows || [];
-              renderSuggestions(items, normalizedQuery);
-              const matches = new Set(items.map(function (item) { return String(item.item_id); }));
-              const cards = itemsRoot.querySelectorAll('.product-card');
-              cards.forEach(function (card) {
-                const itemId = card.getAttribute('data-item-id');
-                const wrapper = card.closest('[class*="col-"]') || card;
-                wrapper.style.display = matches.has(String(itemId)) ? '' : 'none';
-              });
-            })
-            .catch(function () {
-              if (suggestions) {
-                suggestions.innerHTML = '';
-                suggestions.hidden = true;
-              }
+        function updatePriceLabel() {
+          if (!priceRange || !priceMaxLabel) return;
+          const atMax = parseFloat(priceRange.value) >= parseFloat(priceRange.max);
+          priceMaxLabel.textContent = atMax ? 'Any' : formatPeso(priceRange.value);
+        }
+
+        function setCheckbox(selector, value, checked) {
+          document.querySelectorAll(selector).forEach(function (box) {
+            if (box.value === value) box.checked = checked;
+          });
+        }
+
+        function renderChips(conditions, brands, stockOnly, maxPrice) {
+          if (!chipsRoot) return;
+          const chips = [];
+          conditions.forEach(function (c) {
+            chips.push({ label: c, clear: function () { setCheckbox('.filter-condition', c, false); } });
+          });
+          brands.forEach(function (b) {
+            chips.push({ label: b, clear: function () { setCheckbox('.filter-brand', b, false); } });
+          });
+          if (stockOnly) {
+            chips.push({ label: 'In Stock', clear: function () { if (inStockOnly) inStockOnly.checked = false; } });
+          }
+          if (priceRange && maxPrice < parseFloat(priceRange.max)) {
+            chips.push({
+              label: 'Up to ' + formatPeso(maxPrice),
+              clear: function () { priceRange.value = priceRange.max; updatePriceLabel(); }
             });
-        }
-
-        searchInput.addEventListener('input', function () { applyFilter(searchInput.value); });
-        searchInput.addEventListener('keypress', function (e) {
-          if (e.which === 13) { e.preventDefault(); applyFilter(searchInput.value); }
-        });
-        if (searchBtn) {
-          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyFilter(searchInput.value); });
-        }
-
-        document.addEventListener('click', function (e) {
-          if (!e.target.closest('.search-box')) {
-            if (suggestions) {
-              suggestions.innerHTML = '';
-              suggestions.hidden = true;
-            }
           }
-        });
 
-        document.addEventListener('click', function (e) {
-          const suggestion = e.target.closest('.search-suggestion-item');
-          if (!suggestion) return;
-          searchInput.value = suggestion.getAttribute('data-query');
-          applyFilter(searchInput.value);
+          chipsRoot.innerHTML = '';
+          chips.forEach(function (chip) {
+            const el = document.createElement('span');
+            el.className = 'filter-chip';
+            const label = document.createElement('span');
+            label.textContent = chip.label;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('aria-label', 'Remove filter: ' + chip.label);
+            btn.textContent = '\u00d7';
+            btn.addEventListener('click', function () {
+              chip.clear();
+              applyAllFilters();
+            });
+            el.appendChild(label);
+            el.appendChild(btn);
+            chipsRoot.appendChild(el);
+          });
+        }
+
+        function applyAllFilters() {
+          const query = ((searchInput && searchInput.value) || '').trim().toLowerCase();
+          const activeConditions = conditionBoxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+          const activeBrands = brandBoxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+          const maxPrice = priceRange ? parseFloat(priceRange.value) : Infinity;
+          const stockOnly = !!(inStockOnly && inStockOnly.checked);
+
+          const cards = itemsRoot.querySelectorAll('.product-card');
+          let visibleCount = 0;
+
+          cards.forEach(function (card) {
+            const haystack = card.textContent.toLowerCase();
+            const conditionEl = card.querySelector('.product-condition');
+            const brandEl = card.querySelector('.product-brand');
+            const priceEl = card.querySelector('.product-price');
+            const stockEl = card.querySelector('.product-stock');
+
+            const condition = conditionEl ? conditionEl.textContent.trim() : '';
+            const brand = brandEl ? brandEl.textContent.trim() : '';
+            const price = parsePrice(priceEl ? priceEl.textContent : '');
+            const stock = parseStock(stockEl ? stockEl.textContent : '');
+
+            let match = !query || haystack.includes(query);
+            if (match && activeConditions.length) match = activeConditions.indexOf(condition) !== -1;
+            if (match && activeBrands.length) match = activeBrands.indexOf(brand) !== -1;
+            if (match && priceRange) match = price <= maxPrice;
+            if (match && stockOnly) match = stock > 0;
+
+            const wrapper = card.closest('[class*="col-"]') || card;
+            wrapper.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+          });
+
+          if (noResults) noResults.classList.toggle('is-visible', visibleCount === 0 && cards.length > 0);
+          if (resultsCount) {
+            resultsCount.innerHTML = '<strong>' + visibleCount + '</strong> camera' + (visibleCount === 1 ? '' : 's') + ' found';
+          }
+
+          renderChips(activeConditions, activeBrands, stockOnly, maxPrice);
+        }
+
+        function sortItems(mode) {
+          if (mode === 'default') return;
+          const cards = Array.from(itemsRoot.querySelectorAll('[class*="col-"]'));
+          cards.sort(function (a, b) {
+            const aPriceEl = a.querySelector('.product-price');
+            const bPriceEl = b.querySelector('.product-price');
+            const aNameEl = a.querySelector('.product-title');
+            const bNameEl = b.querySelector('.product-title');
+            const priceA = parsePrice(aPriceEl ? aPriceEl.textContent : '');
+            const priceB = parsePrice(bPriceEl ? bPriceEl.textContent : '');
+            const nameA = (aNameEl ? aNameEl.textContent : '').trim();
+            const nameB = (bNameEl ? bNameEl.textContent : '').trim();
+            if (mode === 'price-asc') return priceA - priceB;
+            if (mode === 'price-desc') return priceB - priceA;
+            if (mode === 'name-asc') return nameA.localeCompare(nameB);
+            return 0;
+          });
+          cards.forEach(function (card) { itemsRoot.appendChild(card); });
+        }
+
+        if (searchInput) {
+          searchInput.addEventListener('input', applyAllFilters);
+          searchInput.addEventListener('keypress', function (e) {
+            if (e.which === 13) { e.preventDefault(); applyAllFilters(); }
+          });
+        }
+        if (searchBtn) {
+          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyAllFilters(); });
+        }
+
+        document.querySelectorAll('.filter-condition, .filter-brand').forEach(function (box) {
+          box.addEventListener('change', applyAllFilters);
         });
+        if (inStockOnly) inStockOnly.addEventListener('change', applyAllFilters);
+        if (priceRange) {
+          priceRange.addEventListener('input', function () { updatePriceLabel(); applyAllFilters(); });
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            document.querySelectorAll('.filter-condition, .filter-brand').forEach(function (b) { b.checked = false; });
+            if (inStockOnly) inStockOnly.checked = false;
+            if (priceRange) { priceRange.value = priceRange.max; updatePriceLabel(); }
+            if (searchInput) searchInput.value = '';
+            applyAllFilters();
+          });
+        }
+        if (sortSelect) {
+          sortSelect.addEventListener('change', function () { sortItems(sortSelect.value); });
+        }
+
+        if ('MutationObserver' in window) {
+          new MutationObserver(applyAllFilters).observe(itemsRoot, { childList: true, subtree: true });
+        }
+
+        updatePriceLabel();
+        applyAllFilters();
       })();
     </script>
   </body>

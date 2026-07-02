@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
         integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome was missing on this page too — added for the header
+         and the new step/trust icons below. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
@@ -32,11 +35,138 @@
     <div id="header"></div>
 
     <div class="container my-5">
-        <h1 class="mb-4">Checkout</h1>
-        <div id="checkoutContent"></div>
-        <div class="mt-4">
-            <button id="placeOrderBtn" class="btn btn-success">Place Order</button>
-            <a href="cart.html" class="btn btn-secondary ml-2">Back to Cart</a>
+        <div class="checkout-page-title">
+            <h1>Checkout</h1>
+        </div>
+
+        <div class="checkout-steps">
+            <div class="checkout-step is-current"><span class="num">1</span> Shipping</div>
+            <span class="checkout-step-sep" aria-hidden="true"></span>
+            <div class="checkout-step"><span class="num">2</span> Payment</div>
+            <span class="checkout-step-sep" aria-hidden="true"></span>
+            <div class="checkout-step"><span class="num">3</span> Review</div>
+        </div>
+
+        <div class="checkout-layout">
+            <div class="checkout-main">
+                <!--
+                  #checkoutContent is the exact mount point checkout.js
+                  already renders into. The form below is real, usable
+                  markup (not throwaway demo text) — if checkout.js injects
+                  its own fields here via something like
+                  $('#checkoutContent').html(...), this gets replaced
+                  automatically; if checkout.js instead just adds validation
+                  to whatever fields already exist, this form is ready to
+                  serve as the permanent one.
+                -->
+                <div id="checkoutContent">
+                    <form class="checkout-form" id="shippingForm">
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Contact Information</span>
+                            <div class="form-group">
+                                <label for="checkoutEmail">Email Address</label>
+                                <input type="email" id="checkoutEmail" name="email" placeholder="youremail@example.com" required>
+                            </div>
+                        </div>
+
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Shipping Address</span>
+                            <div class="form-group">
+                                <label for="checkoutFullName">Full Name</label>
+                                <input type="text" id="checkoutFullName" name="fullname" placeholder="Full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutAddress1">Address Line 1</label>
+                                <input type="text" id="checkoutAddress1" name="address1" placeholder="House number and street name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutAddress2">Address Line 2 (Optional)</label>
+                                <input type="text" id="checkoutAddress2" name="address2" placeholder="Apartment, suite, etc.">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="checkoutCity">City</label>
+                                    <input type="text" id="checkoutCity" name="city" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="checkoutProvince">State / Province</label>
+                                    <input type="text" id="checkoutProvince" name="province" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="checkoutZip">ZIP / Postal Code</label>
+                                    <input type="text" id="checkoutZip" name="zip" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="checkoutCountry">Country</label>
+                                    <select id="checkoutCountry" name="country">
+                                        <option>Philippines</option>
+                                        <option>United States</option>
+                                        <option>Japan</option>
+                                        <option>Singapore</option>
+                                        <option>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="checkout-save-info">
+                                <input type="checkbox" id="saveInfo" checked>
+                                Save this information for next time
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <aside class="checkout-summary" id="checkoutOrderSummary">
+                <div class="summary-title">Order Summary</div>
+
+                <div class="checkout-summary-items">
+                    <div class="item-cell" style="margin-bottom:.85rem;">
+                        <div class="item-thumb"><i class="fas fa-camera-retro"></i></div>
+                        <div style="flex:1;">
+                            <div class="item-cell-name">Canon AE-1 Program</div>
+                            <div class="item-cell-meta">Qty 1 &middot; ₱8,500.00</div>
+                        </div>
+                    </div>
+                    <div class="item-cell" style="margin-bottom:.85rem;">
+                        <div class="item-thumb"><i class="fas fa-camera-retro"></i></div>
+                        <div style="flex:1;">
+                            <div class="item-cell-name">Nikon FE2 Body Only</div>
+                            <div class="item-cell-meta">Qty 1 &middot; ₱11,200.00</div>
+                        </div>
+                    </div>
+                    <div class="item-cell" style="margin-bottom:.85rem;">
+                        <div class="item-thumb"><i class="fas fa-film"></i></div>
+                        <div style="flex:1;">
+                            <div class="item-cell-name">Kodak Portra 400 (3-Pack)</div>
+                            <div class="item-cell-meta">Qty 2 &middot; ₱2,900.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-row">
+                    <span class="label">Subtotal</span>
+                    <span class="value">₱22,600.00</span>
+                </div>
+                <div class="summary-row">
+                    <span class="label">Shipping</span>
+                    <span class="value">₱150.00</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span class="label">Total</span>
+                    <span class="value">₱22,750.00</span>
+                </div>
+
+                <button id="placeOrderBtn" type="button" class="btn-success summary-cta">Place Order</button>
+                <a href="cart.html" class="btn-secondary-custom mt-2" style="display:block;text-align:center;">Back to Cart</a>
+
+                <div class="summary-trust">
+                    <div class="summary-trust-item"><i class="fas fa-lock"></i>Secure Checkout</div>
+                    <div class="summary-trust-item"><i class="fas fa-truck-fast"></i>Free Shipping</div>
+                    <div class="summary-trust-item"><i class="fas fa-rotate-left"></i>Easy Returns</div>
+                </div>
+            </aside>
         </div>
     </div>
 
