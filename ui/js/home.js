@@ -4,7 +4,14 @@ $(document).ready(function () {
     var priceTotal = 0;
     var quantity = 0;
     let shopItems = [];
+    let filteredItems = [];
+    let currentPage = 1;
+    let loadedPage = 1;
+    let displayMode = 'pagination';
+    let currentSortMode = 'default';
+    let searchAutocompleteAttached = false;
 
+    const ITEMS_PER_PAGE = 9;
     const normalizeText = (value) => String(value || '').trim().toLowerCase();
     const escapeHtml = (value) => String(value || '')
       .replace(/&/g, '&amp;')
@@ -12,6 +19,234 @@ $(document).ready(function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+
+    const renderItemCard = (value) => {
+      const stockQty = value.quantity ?? 0;
+      const imagesList = (value.ItemImages && value.ItemImages.length) ? value.ItemImages.slice() : [];
+      if (!imagesList.length && value.img_path) {
+        imagesList.push({ image_path: value.img_path });
+      }
+      const primaryImage = imagesList.length ? imagesList[0].image_path : null;
+      const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
+      const imagesAttrEscaped = JSON.stringify(imagesList).replace(/</g, '\u003c');
+
+      return `
+        <div class="col-12 col-md-6 col-lg-4 mb-4">
+          <article class="product-card card-carousel" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
+            <div class="product-image">
+              <button type="button" class="nav-arrow left carousel-prev" aria-label="Previous image">‹</button>
+              <img src="${imagePath}" alt="${escapeHtml(value.camera_model || value.description)}" />
+              <button type="button" class="nav-arrow right carousel-next" aria-label="Next image">›</button>
+            </div>
+            <div class="product-body">
+              <div class="product-brand">${escapeHtml(value.camera_brand || 'Vintage')}</div>
+              <div class="product-description">${escapeHtml(value.description || '')}</div>
+              <div class="product-title">${escapeHtml(value.camera_model || '')}</div>
+              <div class="product-tags">
+                <span class="product-condition">${escapeHtml(value.condition || 'Unknown')}</span>
+                <span class="product-stock">Stock: ${stockQty}</span>
+              </div>
+              <div class="product-price">₱ ${parseFloat(value.sell_price).toFixed(2)}</div>
+              <div class="product-actions">
+                <button type="button" class="btn btn-outline-secondary btn-details show-details"
+                  data-id="${value.item_id}"
+                  data-description="${escapeHtml(value.description)}"
+                  data-price="${value.sell_price}"
+                  data-images='${imagesAttrEscaped}'
+                  data-stock="${stockQty}"
+                  data-primary="${primaryImage || ''}">
+                  Details
+                </button>
+                <button type="button" class="btn btn-primary btn-details show-details"
+                  data-id="${value.item_id}"
+                  data-description="${escapeHtml(value.description)}"
+                  data-price="${value.sell_price}"
+                  data-images='${imagesAttrEscaped}'
+                  data-stock="${stockQty}"
+                  data-primary="${primaryImage || ''}">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>`;
+    };
+
+    const getActiveFilters = () => {
+      const query = String($('#shopSearchInput').val() || '').trim().toLowerCase();
+      const activeConditions = $('.filter-condition:checked').map(function () { return this.value; }).get();
+      const activeBrands = $('.filter-brand:checked').map(function () { return this.value; }).get();
+      const maxPrice = parseFloat($('#priceRange').val()) || Infinity;
+      const stockOnly = $('#inStockOnly').is(':checked');
+      return { query, activeConditions, activeBrands, maxPrice, stockOnly };
+    };
+
+    const sortItemsInMemory = (items, mode) => {
+      if (mode === 'default') return items.slice();
+      return items.slice().sort(function (a, b) {
+        const priceA = parseFloat(a.sell_price) || 0;
+        const priceB = parseFloat(b.sell_price) || 0;
+        const nameA = String(a.camera_model || a.description || '').trim();
+        const nameB = String(b.camera_model || b.description || '').trim();
+
+        if (mode === 'price-asc') return priceA - priceB;
+        if (mode === 'price-desc') return priceB - priceA;
+        if (mode === 'name-asc') return nameA.localeCompare(nameB);
+        return 0;
+      });
+    };
+
+    const getPageCount = () => Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+
+    const updatePaginationControls = () => {
+      const pageCount = getPageCount();
+      const current = Math.min(currentPage, pageCount);
+      const loaded = Math.min(loadedPage, pageCount);
+      const navRoot = $('#paginationNav');
+      const statusRoot = $('#paginationStatus');
+
+      if (!navRoot.length) return;
+
+      if (pageCount <= 1) {
+        navRoot.empty();
+      } else {
+        const pageButtons = [];
+        pageButtons.push(`<button type="button" class="page-button" data-page="${Math.max(1, current - 1)}" ${current <= 1 ? 'disabled' : ''} aria-label="Previous page">Prev</button>`);
+        const visiblePages = Math.min(pageCount, 7);
+        let startPage = 1;
+        let endPage = pageCount;
+        if (pageCount > visiblePages) {
+          startPage = Math.max(1, current - 3);
+          endPage = Math.min(pageCount, startPage + visiblePages - 1);
+          if (endPage - startPage < visiblePages - 1) {
+            startPage = Math.max(1, endPage - visiblePages + 1);
+          }
+        }
+        if (startPage > 1) pageButtons.push('<span class="page-ellipsis">...</span>');
+        for (let i = startPage; i <= endPage; i += 1) {
+          pageButtons.push(`<button type="button" class="page-button ${i === current ? 'active' : ''}" data-page="${i}" aria-label="Page ${i}">${i}</button>`);
+        }
+        if (endPage < pageCount) pageButtons.push('<span class="page-ellipsis">...</span>');
+        pageButtons.push(`<button type="button" class="page-button" data-page="${Math.min(pageCount, current + 1)}" ${current >= pageCount ? 'disabled' : ''} aria-label="Next page">Next</button>`);
+        navRoot.html(pageButtons.join(''));
+      }
+
+      if (statusRoot.length) {
+        const itemCountText = filteredItems.length === 1 ? 'item' : 'items';
+        const visibleCount = displayMode === 'infinite' ? Math.min(filteredItems.length, loaded * ITEMS_PER_PAGE) : Math.min(filteredItems.length, ITEMS_PER_PAGE);
+        statusRoot.text(`Showing ${visibleCount} of ${filteredItems.length} ${itemCountText} ${pageCount > 1 ? `— page ${current} of ${pageCount}` : ''}`);
+      }
+    };
+
+    const renderCurrentPage = () => {
+      const itemsRoot = $('#items');
+      itemsRoot.empty();
+      const pageCount = getPageCount();
+      const page = Math.min(currentPage, pageCount);
+      const endIndex = displayMode === 'infinite' ? Math.min(filteredItems.length, loadedPage * ITEMS_PER_PAGE) : page * ITEMS_PER_PAGE;
+      const startIndex = displayMode === 'infinite' ? 0 : (page - 1) * ITEMS_PER_PAGE;
+      const pageItems = filteredItems.slice(startIndex, endIndex);
+
+      if (!pageItems.length) {
+        $('#shopNoResults').show();
+      } else {
+        $('#shopNoResults').hide();
+        pageItems.forEach(function (value) {
+          itemsRoot.append(renderItemCard(value));
+        });
+      }
+
+      if (!searchAutocompleteAttached) {
+        attachShopSearchAutocomplete();
+        searchAutocompleteAttached = true;
+      }
+
+      updatePaginationControls();
+    };
+
+    const applySortMode = (mode) => {
+      currentSortMode = mode;
+      filteredItems = sortItemsInMemory(filteredItems, mode);
+    };
+
+    window.shopApplyFilters = function () {
+      const filters = getActiveFilters();
+      filteredItems = shopItems.filter(function (value) {
+        const haystack = `${String(value.camera_brand || '').toLowerCase()} ${String(value.camera_model || '').toLowerCase()} ${String(value.description || '').toLowerCase()} ${String(value.condition || '').toLowerCase()}`;
+        let matches = !filters.query || haystack.indexOf(filters.query) !== -1;
+
+        if (matches && filters.activeConditions.length) {
+          matches = filters.activeConditions.indexOf(String(value.condition || '')) !== -1;
+        }
+        if (matches && filters.activeBrands.length) {
+          matches = filters.activeBrands.indexOf(String(value.camera_brand || '')) !== -1;
+        }
+        if (matches && filters.maxPrice !== Infinity) {
+          matches = parseFloat(value.sell_price) <= filters.maxPrice;
+        }
+        if (matches && filters.stockOnly) {
+          const stockQty = parseInt(value.quantity || 0, 10);
+          matches = stockQty > 0;
+        }
+        return matches;
+      });
+
+      currentPage = 1;
+      loadedPage = 1;
+      displayMode = 'pagination';
+      applySortMode(currentSortMode);
+      renderCurrentPage();
+    };
+
+    window.shopSortItems = function (mode) {
+      applySortMode(mode);
+      renderCurrentPage();
+    };
+
+    window.shopGoToPage = function (page) {
+      const pageCount = getPageCount();
+      currentPage = Math.min(Math.max(1, page), pageCount);
+      loadedPage = Math.max(loadedPage, currentPage);
+      displayMode = 'pagination';
+      renderCurrentPage();
+      window.scrollTo({ top: $('#items').offset().top - 120, behavior: 'smooth' });
+    };
+
+    window.shopLoadNextPage = function () {
+      const pageCount = getPageCount();
+      if (loadedPage >= pageCount) return;
+      loadedPage += 1;
+      displayMode = 'infinite';
+      renderCurrentPage();
+    };
+
+    $(document).on('click', '#paginationNav .page-button', function () {
+      const page = parseInt($(this).data('page'), 10);
+      if (!Number.isNaN(page)) {
+        window.shopGoToPage(page);
+      }
+    });
+
+    const createInfiniteScrollObserver = () => {
+      const sentinel = document.getElementById('scrollSentinel');
+      if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+      const observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            window.shopLoadNextPage();
+          }
+        });
+      }, { rootMargin: '200px' });
+      observer.observe(sentinel);
+    };
+
+    const initializePagination = () => {
+      currentPage = 1;
+      loadedPage = 1;
+      displayMode = 'pagination';
+      updatePaginationControls();
+      createInfiniteScrollObserver();
+    };
 
     const buildSearchSuggestions = (query) => {
       const normalizedQuery = normalizeText(query);
@@ -164,65 +399,10 @@ $(document).ready(function () {
                 return;
             }
 
-            let row;
-            $.each(items, function (key, value) {
-                if (key % 4 === 0) {
-                    row = $('<div class="row"></div>');
-                    $("#items").append(row);
-                }
-                const stockQty = value.quantity ?? 0;
-                // Prefer ItemImages if present, otherwise fall back to img_path
-                const imagesList = (value.ItemImages && value.ItemImages.length) ? value.ItemImages.slice() : [];
-                if (!imagesList.length && value.img_path) {
-                    imagesList.push({ image_path: value.img_path });
-                }
-                const primaryImage = imagesList.length ? imagesList[0].image_path : null;
-                const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
-                     const imagesAttrEscaped = JSON.stringify(imagesList).replace(/</g, '\\u003c');
-                                const item = `<div class="col-md-6 col-lg-3 mb-4">
-                  <article class="product-card" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
-                    <div class="product-image">
-                      <button type="button" class="nav-arrow left" aria-label="Previous image">‹</button>
-                      <img src="${imagePath}" alt="${escapeHtml(value.camera_model || value.description)}" />
-                      <button type="button" class="nav-arrow right" aria-label="Next image">›</button>
-                    </div>
-                    <div class="product-body">
-                      <div class="product-brand">${escapeHtml(value.camera_brand || 'Vintage')}</div>
-                      <div class="product-title">${escapeHtml(value.camera_model || value.description)}</div>
-                      <div class="product-description">${escapeHtml(value.description || '')}</div>
-                      <div class="product-tags">
-                        <span class="product-condition">${escapeHtml(value.condition || 'Unknown')}</span>
-                        <span class="product-stock">Stock: ${stockQty}</span>
-                      </div>
-                      <div class="product-price">₱ ${parseFloat(value.sell_price).toFixed(2)}</div>
-                      <div class="product-actions">
-                        <button type="button" class="btn btn-outline-secondary btn-details show-details"
-                          data-id="${value.item_id}"
-                          data-description="${escapeHtml(value.description)}"
-                          data-price="${value.sell_price}"
-                          data-images='${JSON.stringify(imagesList)}'
-                          data-stock="${stockQty}"
-                          data-primary="${primaryImage || ''}">
-                          Details
-                        </button>
-                        <button type="button" class="btn btn-primary btn-details show-details"
-                          data-id="${value.item_id}"
-                          data-description="${escapeHtml(value.description)}"
-                          data-price="${value.sell_price}"
-                          data-images='${JSON.stringify(imagesList)}'
-                          data-stock="${stockQty}"
-                          data-primary="${primaryImage || ''}">
-                          Add to Cart
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                </div>`;
-                row.append(item);
-
-            });
-
-            attachShopSearchAutocomplete();
+            // initialize in-memory filtered list and render the first page
+            filteredItems = items.slice();
+            initializePagination();
+            renderCurrentPage();
 
             if ($('#productDetailsModal').length === 0) {
                 $('body').append(`
@@ -244,7 +424,7 @@ $(document).ready(function () {
                     `);
             }
 
-            $(".show-details").on('click', function () {
+            $(document).off('click', '.show-details').on('click', '.show-details', function () {
 
                 const id = $(this).data('id');
                 const description = $(this).data('description');
@@ -310,7 +490,7 @@ $(document).ready(function () {
             $(document).on('click', '.carousel-prev, .carousel-next', function (e) {
                 e.preventDefault();
                 const isPrev = $(this).hasClass('carousel-prev');
-                const card = $(this).closest('.card-carousel');
+                const card = $(this).closest('.product-card');
                 if (!card || !card.length) return;
                 let images = [];
                 const imagesAttr = card.attr('data-images');
@@ -327,7 +507,7 @@ $(document).ready(function () {
                 let idx = parseInt(card.attr('data-index') || '0', 10);
                 idx = isPrev ? (idx - 1 + images.length) % images.length : (idx + 1) % images.length;
                 card.attr('data-index', idx);
-                const img = card.find('img.card-img-top').first();
+                const img = card.find('.product-image img').first();
                 const imgPath = images[idx] && images[idx].image_path ? `${url}${encodeURI(images[idx].image_path)}` : 'https://via.placeholder.com/400x250?text=No+Image';
                 img.attr('src', imgPath);
             });

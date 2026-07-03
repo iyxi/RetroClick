@@ -316,6 +316,11 @@
             </div>
           </div>
 
+          <div class="shop-pagination">
+            <div id="paginationStatus" class="pagination-status">Showing 0 of 0 items</div>
+            <nav id="paginationNav" class="pagination-nav" aria-label="Product pagination"></nav>
+          </div>
+          <div id="scrollSentinel" class="scroll-sentinel" aria-hidden="true"></div>
           <div class="shop-no-results" id="shopNoResults">No cameras match your filters &mdash; try widening your search.</div>
         </div>
       </div>
@@ -500,21 +505,21 @@
         }
 
         if (searchInput) {
-          searchInput.addEventListener('input', applyAllFilters);
+          searchInput.addEventListener('input', function () { if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); });
           searchInput.addEventListener('keypress', function (e) {
-            if (e.which === 13) { e.preventDefault(); applyAllFilters(); }
+            if (e.which === 13) { e.preventDefault(); if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); }
           });
         }
         if (searchBtn) {
-          searchBtn.addEventListener('click', function (e) { e.preventDefault(); applyAllFilters(); });
+          searchBtn.addEventListener('click', function (e) { e.preventDefault(); if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); });
         }
 
         document.querySelectorAll('.filter-condition, .filter-brand').forEach(function (box) {
-          box.addEventListener('change', applyAllFilters);
+          box.addEventListener('change', function () { if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); });
         });
-        if (inStockOnly) inStockOnly.addEventListener('change', applyAllFilters);
+        if (inStockOnly) inStockOnly.addEventListener('change', function () { if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); });
         if (priceRange) {
-          priceRange.addEventListener('input', function () { updatePriceLabel(); applyAllFilters(); });
+          priceRange.addEventListener('input', function () { updatePriceLabel(); if (window.shopApplyFilters) window.shopApplyFilters(); setTimeout(applyAllFilters, 60); });
         }
         if (clearBtn) {
           clearBtn.addEventListener('click', function () {
@@ -522,11 +527,12 @@
             if (inStockOnly) inStockOnly.checked = false;
             if (priceRange) { priceRange.value = priceRange.max; updatePriceLabel(); }
             if (searchInput) searchInput.value = '';
-            applyAllFilters();
+            if (window.shopApplyFilters) window.shopApplyFilters();
+            setTimeout(applyAllFilters, 60);
           });
         }
         if (sortSelect) {
-          sortSelect.addEventListener('change', function () { sortItems(sortSelect.value); });
+          sortSelect.addEventListener('change', function () { if (window.shopSortItems) window.shopSortItems(sortSelect.value); setTimeout(applyAllFilters, 60); });
         }
 
         if ('MutationObserver' in window) {
