@@ -74,8 +74,9 @@
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search by brand, model, or condition...">
+                        <input type="text" id="searchInput" autocomplete="off" placeholder="Search by brand, model, or condition..." aria-label="Search products">
                         <button id="searchBtn" type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-suggestions d-none" id="searchSuggestions" role="listbox" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
@@ -163,7 +164,7 @@
         function loadFeaturedProducts() {
             $.ajax({
                 method: 'GET',
-                url: `${API_URL}/items`,
+                url: `${API_URL}/public/items`,
                 dataType: 'json',
                 success: function(data) {
                     const products = data.rows ? data.rows.slice(0, 6) : [];
@@ -176,23 +177,36 @@
         }
 
         function displayProducts(products) {
+            function getImageUrl(path) {
+                return path ? `http://localhost:3000/${String(path).replace(/^\/+/, '')}` : '';
+            }
+
             let html = '';
             products.forEach(product => {
+                const imageUrl = getImageUrl(product.img_path);
+                const safeDescription = escapeHtml(product.description || 'A carefully curated vintage camera.');
+                const safeBrand = escapeHtml(product.camera_brand || 'Vintage');
+                const safeModel = escapeHtml(product.camera_model || product.description || 'Vintage Camera');
+                const stockQty = product.quantity || 0;
+
                 html += `
                     <div class="col-md-4 mb-4">
                         <div class="product-card">
                             <div class="product-image">
-                                ${product.img_path ? `<img src="${API_URL}/../../../${product.img_path}" alt="${product.description}">` : '<i class="fas fa-camera"></i>'}
+                                ${imageUrl ? `<img src="${imageUrl}" alt="${safeDescription}">` : '<i class="fas fa-camera"></i>'}
                             </div>
                             <div class="product-body">
-                                <div class="product-title">${product.camera_model || product.description}</div>
-                                <div class="product-brand">${product.camera_brand || 'Vintage'}</div>
-                                <div class="product-condition">${product.condition || 'Good'}</div>
+                                <div class="product-brand">${safeBrand}</div>
+                                <div class="product-title">${safeModel}</div>
+                                <div class="product-description">${safeDescription}</div>
+                                <div class="product-tags">
+                                    <span class="product-condition">${escapeHtml(product.condition || 'Good')}</span>
+                                    <span class="product-stock">Stock: ${stockQty}</span>
+                                </div>
                                 <div class="product-price">₱${parseFloat(product.sell_price).toFixed(2)}</div>
-                                <div class="product-stock">Stock: ${product.quantity || 0}</div>
                                 <div class="product-actions">
-                                    <button class="btn-details" onclick="viewProduct(${product.item_id})">Details</button>
-                                    <button class="btn-cart" onclick="addToCart(${product.item_id}, '${product.description}', ${product.sell_price}, '${product.img_path}', ${product.quantity})">Add to Cart</button>
+                                    <button class="btn-details" data-id="${product.item_id}">Details</button>
+                                    <button class="btn-cart" data-id="${product.item_id}" data-desc="${safeDescription}" data-price="${product.sell_price}" data-img="${escapeHtml(product.img_path || '')}" data-stock="${stockQty}">Add to Cart</button>
                                 </div>
                             </div>
                         </div>
@@ -200,9 +214,23 @@
                 `;
             });
             $('#featuredProducts').html(html);
+            $('#featuredProducts').off('click', '.btn-details').on('click', '.btn-details', function () {
+                viewProduct($(this).data('id'));
+            });
+            $('#featuredProducts').off('click', '.btn-cart').on('click', '.btn-cart', function () {
+                const button = $(this);
+                addToCart(
+                    button.data('id'),
+                    button.data('desc'),
+                    parseFloat(button.data('price')) || 0,
+                    button.data('img'),
+                    parseInt(button.data('stock'), 10) || 0
+                );
+            });
         }
 
         function displaySearchResults(products, query) {
+            const getImageUrl = (path) => path ? `http://localhost:3000/${String(path).replace(/^\/+/, '')}` : '';
             let html = `
                 <div class="search-results-header">
                     <h2 class="section-title">Search Results for "${query}"</h2>
@@ -219,21 +247,25 @@
                 `;
             } else {
                 products.forEach(product => {
+                    const imageUrl = getImageUrl(product.img_path);
                     html += `
                         <div class="col-md-4 mb-4">
                             <div class="product-card">
                                 <div class="product-image">
-                                    ${product.img_path ? `<img src="${API_URL}/../../../${product.img_path}" alt="${product.description}">` : '<i class="fas fa-camera"></i>'}
+                                    ${imageUrl ? `<img src="${imageUrl}" alt="${escapeHtml(product.description)}">` : '<i class="fas fa-camera"></i>'}
                                 </div>
                                 <div class="product-body">
-                                    <div class="product-title">${product.camera_model || product.description}</div>
-                                    <div class="product-brand">${product.camera_brand || 'Vintage'}</div>
-                                    <div class="product-condition">${product.condition || 'Good'}</div>
+                                    <div class="product-brand">${escapeHtml(product.camera_brand || 'Vintage')}</div>
+                                    <div class="product-title">${escapeHtml(product.camera_model || product.description)}</div>
+                                    <div class="product-description">${escapeHtml(product.description || 'A carefully curated vintage camera.')}</div>
+                                    <div class="product-tags">
+                                        <span class="product-condition">${escapeHtml(product.condition || 'Good')}</span>
+                                        <span class="product-stock">Stock: ${product.quantity || 0}</span>
+                                    </div>
                                     <div class="product-price">₱${parseFloat(product.sell_price).toFixed(2)}</div>
-                                    <div class="product-stock">Stock: ${product.quantity || 0}</div>
                                     <div class="product-actions">
                                         <button class="btn-details" onclick="viewProduct(${product.item_id})">Details</button>
-                                        <button class="btn-cart" onclick="addToCart(${product.item_id}, '${product.description}', ${product.sell_price}, '${product.img_path}', ${product.quantity})">Add to Cart</button>
+                                        <button class="btn-cart" onclick="addToCart(${product.item_id}, '${escapeHtml(product.description)}', ${product.sell_price}, '${product.img_path}', ${product.quantity})">Add to Cart</button>
                                     </div>
                                 </div>
                             </div>
@@ -278,6 +310,103 @@
             window.location.href = 'home.html?brand=' + brand;
         }
 
+        const normalizeText = (value) => String(value || '').trim().toLowerCase();
+        const escapeHtml = (value) => String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        let indexSearchItems = [];
+
+        function buildIndexSuggestions(query) {
+            const normalizedQuery = normalizeText(query);
+            if (!normalizedQuery) return [];
+
+            const seen = new Set();
+            const suggestions = [];
+
+            indexSearchItems.forEach((item) => {
+                [item.camera_brand, item.camera_model, item.description, item.condition].forEach((value) => {
+                    const trimmed = String(value || '').trim();
+                    const normalizedValue = normalizeText(trimmed);
+                    if (!trimmed || !normalizedValue.includes(normalizedQuery) || seen.has(normalizedValue)) return;
+                    seen.add(normalizedValue);
+                    suggestions.push({
+                        label: trimmed,
+                        meta: item.camera_brand || item.condition || ''
+                    });
+                });
+            });
+
+            return suggestions.sort((a, b) => a.label.localeCompare(b.label)).slice(0, 8);
+        }
+
+        function createIndexSuggestionsMarkup(suggestions) {
+            if (!suggestions.length) return '';
+            return suggestions.map(suggestion => `
+                <button type="button" class="search-suggestion-item" data-value="${escapeHtml(suggestion.label)}">
+                    <span class="search-suggestion-title">${escapeHtml(suggestion.label)}</span>
+                    ${suggestion.meta ? `<span class="search-suggestion-meta">${escapeHtml(suggestion.meta)}</span>` : ''}
+                </button>
+            `).join('');
+        }
+
+        function refreshSearchSuggestions(query) {
+            const suggestions = buildIndexSuggestions(query);
+            const suggestionsRoot = $('#searchSuggestions');
+            if (!suggestions.length) {
+                suggestionsRoot.empty().addClass('d-none');
+                return;
+            }
+            suggestionsRoot.html(createIndexSuggestionsMarkup(suggestions)).removeClass('d-none');
+        }
+
+        function initializeSearchAutocomplete() {
+            const searchInput = $('#searchInput');
+            const suggestionsRoot = $('#searchSuggestions');
+
+            if (!searchInput.length || !suggestionsRoot.length) return;
+
+            searchInput.on('input', function () {
+                refreshSearchSuggestions(this.value);
+            });
+
+            searchInput.on('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    suggestionsRoot.empty().addClass('d-none');
+                }
+            });
+
+            suggestionsRoot.on('click', '.search-suggestion-item', function () {
+                const value = $(this).data('value');
+                searchInput.val(value);
+                suggestionsRoot.empty().addClass('d-none');
+                performSearch();
+            });
+
+            $(document).on('click', function (event) {
+                if (!$(event.target).closest('.search-box').length) {
+                    suggestionsRoot.empty().addClass('d-none');
+                }
+            });
+        }
+
+        function loadIndexSearchItems() {
+            $.ajax({
+                method: 'GET',
+                url: `${API_URL}/public/items`,
+                dataType: 'json',
+                success: function(data) {
+                    indexSearchItems = data.rows || [];
+                },
+                error: function() {
+                    console.log('Error loading search suggestions');
+                }
+            });
+        }
+
         function performSearch() {
             const query = $('#searchInput').val().trim();
             if (!query) {
@@ -287,7 +416,7 @@
 
             $.ajax({
                 method: 'GET',
-                url: `${API_URL}/items`,
+                url: `${API_URL}/public/items`,
                 dataType: 'json',
                 success: function(data) {
                     const products = data.rows || [];
@@ -309,6 +438,9 @@
         }
 
         $(document).ready(function() {
+            initializeSearchAutocomplete();
+            loadIndexSearchItems();
+
             $('#searchBtn').on('click', function(e) {
                 e.preventDefault();
                 performSearch();

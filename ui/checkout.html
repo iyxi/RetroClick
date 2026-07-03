@@ -3,13 +3,13 @@
 
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Checkout | RetroClick</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
         integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
         integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- Font Awesome was missing on this page too — added for the header
-         and the new step/trust icons below. -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,45 @@
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"
         integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
     <script src="js/header.js"></script>
+    <style>
+        /* Checkout form validation styles */
+        .checkout-form input.is-invalid,
+        .checkout-form select.is-invalid {
+            border-color: var(--rust) !important;
+            background: rgba(181, 72, 31, 0.05) !important;
+            box-shadow: 0 0 0 0.2rem rgba(181, 72, 31, 0.15) !important;
+        }
+
+        .field-error {
+            display: block;
+            color: var(--rust);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.4rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group.has-error input,
+        .form-group.has-error select {
+            border-color: var(--rust) !important;
+            background: rgba(181, 72, 31, 0.05) !important;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
         integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
         crossorigin="anonymous"></script>
@@ -28,15 +67,18 @@
         integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="js/checkout.js"></script>
-    <title>Checkout</title>
 </head>
 
 <body>
     <div id="header"></div>
 
     <div class="container my-5">
-        <div class="checkout-page-title">
-            <h1>Checkout</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--brass);">
+            <a href="cart.html" style="color: var(--bordeaux); text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-arrow-left"></i> Back to Cart
+            </a>
+            <h1 style="margin: 0; font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.03em; color: var(--ink);">Checkout</h1>
+            <div style="width: 100px;"></div>
         </div>
 
         <div class="checkout-steps">
@@ -49,121 +91,95 @@
 
         <div class="checkout-layout">
             <div class="checkout-main">
-                <!--
-                  #checkoutContent is the exact mount point checkout.js
-                  already renders into. The form below is real, usable
-                  markup (not throwaway demo text) — if checkout.js injects
-                  its own fields here via something like
-                  $('#checkoutContent').html(...), this gets replaced
-                  automatically; if checkout.js instead just adds validation
-                  to whatever fields already exist, this form is ready to
-                  serve as the permanent one.
-                -->
-                <div id="checkoutContent">
-                    <form class="checkout-form" id="shippingForm">
-                        <div class="checkout-form-section">
-                            <span class="section-eyebrow left">Contact Information</span>
-                            <div class="form-group">
-                                <label for="checkoutEmail">Email Address</label>
-                                <input type="email" id="checkoutEmail" name="email" placeholder="youremail@example.com" required>
-                            </div>
+                <form class="checkout-form" id="shippingForm">
+                    <div class="checkout-form-section">
+                        <span class="section-eyebrow left">Contact Information</span>
+                        <div class="form-group">
+                            <label for="checkoutEmail">Email Address</label>
+                            <input type="email" id="checkoutEmail" name="email" placeholder="youremail@example.com" required>
                         </div>
+                    </div>
 
-                        <div class="checkout-form-section">
-                            <span class="section-eyebrow left">Shipping Address</span>
-                            <div class="form-group">
-                                <label for="checkoutFullName">Full Name</label>
-                                <input type="text" id="checkoutFullName" name="fullname" placeholder="Full name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="checkoutAddress1">Address Line 1</label>
-                                <input type="text" id="checkoutAddress1" name="address1" placeholder="House number and street name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="checkoutAddress2">Address Line 2 (Optional)</label>
-                                <input type="text" id="checkoutAddress2" name="address2" placeholder="Apartment, suite, etc.">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="checkoutCity">City</label>
-                                    <input type="text" id="checkoutCity" name="city" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="checkoutProvince">State / Province</label>
-                                    <input type="text" id="checkoutProvince" name="province" required>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="checkoutZip">ZIP / Postal Code</label>
-                                    <input type="text" id="checkoutZip" name="zip" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="checkoutCountry">Country</label>
-                                    <select id="checkoutCountry" name="country">
-                                        <option>Philippines</option>
-                                        <option>United States</option>
-                                        <option>Japan</option>
-                                        <option>Singapore</option>
-                                        <option>Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <label class="checkout-save-info">
-                                <input type="checkbox" id="saveInfo" checked>
-                                Save this information for next time
-                            </label>
+                    <div class="checkout-form-section">
+                        <span class="section-eyebrow left">Shipping Address</span>
+                        <div class="form-group">
+                            <label for="checkoutFullName">Full Name</label>
+                            <input type="text" id="checkoutFullName" name="fullname" placeholder="Full name" required>
                         </div>
-                    </form>
-                </div>
+                        <div class="form-group">
+                            <label for="checkoutAddress1">Address Line 1</label>
+                            <input type="text" id="checkoutAddress1" name="address1" placeholder="House number and street name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkoutAddress2">Address Line 2 (Optional)</label>
+                            <input type="text" id="checkoutAddress2" name="address2" placeholder="Apartment, suite, etc.">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="checkoutCity">City</label>
+                                <input type="text" id="checkoutCity" name="city" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="checkoutProvince">State / Province</label>
+                                <input type="text" id="checkoutProvince" name="province" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="checkoutZip">ZIP / Postal Code</label>
+                                <input type="text" id="checkoutZip" name="zip" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="checkoutCountry">Country</label>
+                                <select id="checkoutCountry" name="country" required>
+                                    <option value="">Select Country</option>
+                                    <option value="PH">Philippines</option>
+                                    <option value="US">United States</option>
+                                    <option value="JP">Japan</option>
+                                    <option value="SG">Singapore</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label class="checkout-save-info">
+                            <input type="checkbox" id="saveInfo" checked>
+                            Save this information for next time
+                        </label>
+                    </div>
+
+                    <button type="button" id="continuePaymentBtn" class="btn-primary-custom" style="width: 100%; margin-top: 1.5rem;">
+                        Continue to Payment →
+                    </button>
+                </form>
             </div>
 
-            <aside class="checkout-summary" id="checkoutOrderSummary">
+            <aside class="checkout-summary">
                 <div class="summary-title">Order Summary</div>
 
-                <div class="checkout-summary-items">
-                    <div class="item-cell" style="margin-bottom:.85rem;">
-                        <div class="item-thumb"><i class="fas fa-camera-retro"></i></div>
-                        <div style="flex:1;">
-                            <div class="item-cell-name">Canon AE-1 Program</div>
-                            <div class="item-cell-meta">Qty 1 &middot; ₱8,500.00</div>
-                        </div>
-                    </div>
-                    <div class="item-cell" style="margin-bottom:.85rem;">
-                        <div class="item-thumb"><i class="fas fa-camera-retro"></i></div>
-                        <div style="flex:1;">
-                            <div class="item-cell-name">Nikon FE2 Body Only</div>
-                            <div class="item-cell-meta">Qty 1 &middot; ₱11,200.00</div>
-                        </div>
-                    </div>
-                    <div class="item-cell" style="margin-bottom:.85rem;">
-                        <div class="item-thumb"><i class="fas fa-film"></i></div>
-                        <div style="flex:1;">
-                            <div class="item-cell-name">Kodak Portra 400 (3-Pack)</div>
-                            <div class="item-cell-meta">Qty 2 &middot; ₱2,900.00</div>
-                        </div>
-                    </div>
+                <div class="checkout-summary-items" id="checkoutSummaryItems">
+                    <!-- Populated by JS -->
                 </div>
 
                 <div class="summary-row">
                     <span class="label">Subtotal</span>
-                    <span class="value">₱22,600.00</span>
+                    <span class="value" id="checkoutSubtotal">₱0.00</span>
                 </div>
                 <div class="summary-row">
                     <span class="label">Shipping</span>
-                    <span class="value">₱150.00</span>
+                    <span class="value" id="checkoutShipping">₱150.00</span>
+                </div>
+                <div class="summary-row discount" id="checkoutDiscountRow" style="display: none;">
+                    <span class="label">Discount</span>
+                    <span class="value" id="checkoutDiscount">−₱0.00</span>
                 </div>
                 <div class="summary-row total-row">
                     <span class="label">Total</span>
-                    <span class="value">₱22,750.00</span>
+                    <span class="value" id="checkoutTotal">₱0.00</span>
                 </div>
-
-                <button id="placeOrderBtn" type="button" class="btn-success summary-cta">Place Order</button>
-                <a href="cart.html" class="btn-secondary-custom mt-2" style="display:block;text-align:center;">Back to Cart</a>
 
                 <div class="summary-trust">
                     <div class="summary-trust-item"><i class="fas fa-lock"></i>Secure Checkout</div>
-                    <div class="summary-trust-item"><i class="fas fa-truck-fast"></i>Free Shipping</div>
+                    <div class="summary-trust-item"><i class="fas fa-truck-fast"></i>Insured Shipping</div>
                     <div class="summary-trust-item"><i class="fas fa-rotate-left"></i>Easy Returns</div>
                 </div>
             </aside>

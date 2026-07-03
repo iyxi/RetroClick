@@ -79,8 +79,9 @@
           <button type="button" data-brand="Leica">Leica</button>
         </div>
         <div class="search-box">
-          <input type="text" id="shopSearchInput" placeholder="Search by brand, model, or condition...">
+          <input type="text" id="shopSearchInput" autocomplete="off" placeholder="Search by brand, model, or condition..." aria-label="Search products">
           <button id="shopSearchBtn" type="button"><i class="fas fa-search"></i></button>
+          <div class="search-suggestions d-none" id="shopSearchSuggestions" role="listbox" aria-live="polite"></div>
         </div>
       </div>
 

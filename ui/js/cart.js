@@ -14,8 +14,9 @@ $(document).ready(function () {
         let html = '';
         let total = 0;
         let selectedTotal = 0;
+        let selectedCount = 0;
         if (cart.length === 0) {
-            html = '<p>Your cart is empty.</p>';
+            html = '<p style="text-align:center; padding:2rem; color:var(--muted);">Your cart is empty.</p>';
         } else {
             html = `<table class="table table-bordered cart-table">
                 <thead>
@@ -35,7 +36,10 @@ $(document).ready(function () {
                 if (typeof item.selected === 'undefined') item.selected = true;
                 let subtotal = item.price * item.quantity;
                 total += subtotal;
-                if (item.selected) selectedTotal += subtotal;
+                if (item.selected) {
+                    selectedTotal += subtotal;
+                    selectedCount += item.quantity;
+                }
                 html += `<tr class="cart-row ${item.selected ? '' : 'cart-row-unselected'}" data-idx="${idx}">
                     <td><input type="checkbox" class="select-item" data-idx="${idx}" ${item.selected ? 'checked' : ''}></td>
                     <td>
@@ -62,17 +66,21 @@ $(document).ready(function () {
                 </tr>`;
             });
             html += `</tbody></table>
-                <div class="cart-totals" style="margin-top: .9rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
-                    <div class="cart-totals-left"></div>
-                    <div class="cart-totals-right">
-                        <div style="text-align:right; font-family:var(--font-body); color:var(--muted);">Selected total</div>
-                        <div class="cart-selected-total" style="font-family:var(--font-display); font-size:1.25rem; color:var(--bordeaux);">₱ ${selectedTotal.toFixed(2)}</div>
-                        <div class="cart-grand-total" style="display:none;">₱ ${total.toFixed(2)}</div>
+                <div class="cart-totals" style="margin-top: 2rem; padding: 1.5rem; background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius); text-align: right;">
+                    <div class="cart-total-label" style="font-family:var(--font-body); font-size:0.9rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.6rem;">Selected total</div>
+                    <div class="cart-selected-total" style="font-family:var(--font-display); font-size:1.8rem; font-weight:700; color:var(--bordeaux); margin-bottom:0.8rem;">₱${selectedTotal.toFixed(2)}</div>
+                    <div style="border-top:2px solid var(--line); padding-top:0.8rem; text-align:right;">
+                        <div style="font-family:var(--font-body); font-size:0.85rem; color:var(--muted); margin-bottom:0.4rem;">Items selected: <strong style="color:var(--ink);" class="cart-items-count">${selectedCount}</strong></div>
                     </div>
                 </div>`;
         }
 
         $('#cartTable').html(html);
+        
+        // Update cart count pill
+        let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        $('#cartCountPill').text(totalItems + ' item' + (totalItems !== 1 ? 's' : ''));
+        
         recalcCartTotals();
     }
 
@@ -80,12 +88,16 @@ $(document).ready(function () {
         const cart = getCart();
         let subtotal = 0;
         let selectedSubtotal = 0;
+        let selectedCount = 0;
         cart.forEach(item => {
             const price = parseFloat(item.price || 0);
             const qty = parseInt(item.quantity || 0, 10) || 0;
             const line = price * qty;
             subtotal += line;
-            if (item.selected) selectedSubtotal += line;
+            if (item.selected) {
+                selectedSubtotal += line;
+                selectedCount += qty;
+            }
         });
 
         const shipping = selectedSubtotal > 0 ? 150 : 0;
@@ -93,17 +105,18 @@ $(document).ready(function () {
         const discount = selectedSubtotal * discountPct;
         const total = Math.max(selectedSubtotal - discount + shipping, 0);
 
-        // update small selected total in cart area
-        $('.cart-selected-total').text('\u20b1 ' + selectedSubtotal.toLocaleString('en-PH', {minimumFractionDigits:2}));
+        // update selected total in cart area with items count
+        $('.cart-selected-total').text('\u20b1' + selectedSubtotal.toLocaleString('en-PH', {minimumFractionDigits:2}));
+        $('.cart-items-count').text(selectedCount);
 
-        // update summary sidebar if present
+        // update summary sidebar - show SELECTED amounts, not all items
         const subtotalEl = document.getElementById('summarySubtotal');
         const shippingEl = document.getElementById('summaryShipping');
         const discountRow = document.getElementById('summaryDiscountRow');
         const discountEl = document.getElementById('summaryDiscount');
         const totalEl = document.getElementById('summaryTotal');
 
-        if (subtotalEl) subtotalEl.textContent = '\u20b1' + subtotal.toLocaleString('en-PH', {minimumFractionDigits:2});
+        if (subtotalEl) subtotalEl.textContent = '\u20b1' + selectedSubtotal.toLocaleString('en-PH', {minimumFractionDigits:2});
         if (shippingEl) shippingEl.textContent = '\u20b1' + shipping.toLocaleString('en-PH', {minimumFractionDigits:2});
         if (discountRow && discountEl) {
             if (discount > 0) {
@@ -231,9 +244,6 @@ $(document).ready(function () {
     loadSharedHeader();
 
     $('#checkoutBtn').on('click', function () {
-
-        itemCount = 0;
-        priceTotal = 0;
         let cart = getCart()
 
         if (cart.length === 0) {
@@ -246,54 +256,15 @@ $(document).ready(function () {
             return;
         }
 
-        // Only checkout selected items; leave others in cart
+        // Check if any items are selected
         const selectedItems = cart.filter(i => i.selected);
         if (selectedItems.length === 0) {
             Swal.fire('No items selected', 'Please select items in your cart to checkout.', 'info');
             return;
         }
 
-        const payload = JSON.stringify({
-            cart: selectedItems.map(item => ({
-                item_id: item.item_id,
-                quantity: item.quantity
-            }))
-        });
-
-        $.ajax({
-            type: "POST",
-            url: `${url}api/v1/create-order`,
-            data: payload,
-            dataType: "json",
-            contentType: 'application/json; charset=utf-8',
-            headers: {
-                "Authorization": "Bearer " + token
-            },
-            success: function (data) {
-                Swal.fire({
-                    icon: "success",
-                    text: data.message || 'Checkout complete',
-                    timer: 1800,
-                    showConfirmButton: false
-                }).then(() => {
-                    // remove only the purchased items from cart, keep others
-                    let current = getCart();
-                    const remaining = current.filter(i => !i.selected);
-                    saveCart(remaining);
-                    renderCart();
-                    window.location.href = 'home.html';
-                });
-            },
-            error: function (error) {
-                console.log(error);
-                Swal.fire({
-                    icon: "error",
-                    text: error.responseJSON?.message || error.responseJSON?.error || 'Checkout failed'
-                });
-            }
-        });
-
-
+        // Redirect to checkout page (order will be created there)
+        window.location.href = 'checkout.html';
     });
 
     renderCart()

@@ -3,6 +3,115 @@ $(document).ready(function () {
     var itemCount = 0;
     var priceTotal = 0;
     var quantity = 0;
+    let shopItems = [];
+
+    const normalizeText = (value) => String(value || '').trim().toLowerCase();
+    const escapeHtml = (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const buildSearchSuggestions = (query) => {
+      const normalizedQuery = normalizeText(query);
+      if (!normalizedQuery) return [];
+
+      const seen = new Set();
+      const suggestions = [];
+
+      shopItems.forEach((item) => {
+        [item.camera_brand, item.camera_model, item.description, item.condition].forEach((value) => {
+          const trimmed = String(value || '').trim();
+          const normalizedValue = normalizeText(trimmed);
+          if (!trimmed || !normalizedValue.includes(normalizedQuery) || seen.has(normalizedValue)) return;
+          seen.add(normalizedValue);
+          suggestions.push({
+            label: trimmed,
+            meta: item.camera_brand || item.condition || ''
+          });
+        });
+      });
+
+      return suggestions.sort((a, b) => a.label.localeCompare(b.label)).slice(0, 8);
+    };
+
+    const createSearchSuggestionMarkup = (suggestions) => {
+      if (!suggestions.length) return '';
+      return suggestions
+        .map(
+          (suggestion) => `
+            <button
+              type="button"
+              class="search-suggestion-item"
+              data-value="${escapeHtml(suggestion.label)}"
+            >
+              <span class="search-suggestion-title">${escapeHtml(suggestion.label)}</span>
+              ${suggestion.meta ? `<span class="search-suggestion-meta">${escapeHtml(suggestion.meta)}</span>` : ''}
+            </button>
+          `
+        )
+        .join('');
+    };
+
+    const attachShopSearchAutocomplete = () => {
+      const searchInput = $('#shopSearchInput');
+      const searchBox = searchInput.closest('.search-box');
+      let suggestionsRoot = $('#shopSearchSuggestions');
+
+      if (!searchInput.length || !searchBox.length) return;
+
+      if (!suggestionsRoot.length) {
+        suggestionsRoot = $('<div class="search-suggestions d-none" id="shopSearchSuggestions" role="listbox" aria-live="polite"></div>');
+        searchBox.append(suggestionsRoot);
+      }
+
+      const clearSuggestions = () => {
+        suggestionsRoot.empty().addClass('d-none');
+      };
+
+      const renderSuggestions = (query) => {
+        const suggestions = buildSearchSuggestions(query);
+        if (!suggestions.length) {
+          clearSuggestions();
+          return;
+        }
+        suggestionsRoot.html(createSearchSuggestionMarkup(suggestions)).removeClass('d-none');
+      };
+
+      searchInput.on('input', function () {
+        renderSuggestions(this.value);
+      });
+
+      searchInput.on('keydown', function (event) {
+        if (event.key === 'Escape') {
+          clearSuggestions();
+        }
+      });
+
+      suggestionsRoot.on('click', '.search-suggestion-item', function () {
+        const value = $(this).data('value');
+        searchInput.val(value);
+        clearSuggestions();
+        searchInput.trigger('input');
+      });
+
+      $(document).on('click', function (event) {
+        if (!$(event.target).closest('.search-box').length) {
+          clearSuggestions();
+        }
+      });
+    };
+
+    window.filterByBrand = function (brand) {
+      document.querySelectorAll('.filter-brand').forEach(function (box) {
+        box.checked = !!brand && box.value === brand;
+      });
+      if (typeof applyAllFilters === 'function') {
+        applyAllFilters();
+      }
+    };
+    window.filterProducts = window.filterByBrand;
 
     const getCart = () => {
         let cart = localStorage.getItem('cart');
@@ -47,6 +156,9 @@ $(document).ready(function () {
                 return String(item.camera_brand || '').trim().toLowerCase() === brandFilter;
             });
 
+            shopItems = items;
+            window.shopItems = items;
+
             if (brandFilter && items.length === 0) {
                 $('#items').html(`<p class="text-center mt-4">No items found for brand <strong>${brandFilter}</strong>.</p>`);
                 return;
@@ -67,33 +179,51 @@ $(document).ready(function () {
                 const primaryImage = imagesList.length ? imagesList[0].image_path : null;
                 const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
                      const imagesAttrEscaped = JSON.stringify(imagesList).replace(/</g, '\\u003c');
-                                const item = `<div class="col-md-3 mb-4">
-                                <div class="card h-100 card-carousel product-card" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
-                                <div class="card-image-wrap">
-                                    <button type="button" class="carousel-btn carousel-prev" aria-label="Previous image">‹</button>
-                                    <img src="${imagePath}" class="card-img-top" alt="${value.description}" />
-                                    <button type="button" class="carousel-btn carousel-next" aria-label="Next image">›</button>
-                                </div>
-                                <div class="card-body">
-                <h5 class="card-title">${value.camera_model || value.description}</h5>
-                <p class="card-text text-uppercase small text-muted mb-2">${value.camera_brand || 'Vintage'}</p>
-                <p class="card-text">₱ ${parseFloat(value.sell_price).toFixed(2)}</p>
-                <p class="card-text">
-                <small class="text-muted">Stock: ${stockQty}</small>
-                </p>
-                     <a href="#!" class="btn btn-primary show-details" role="button"
-                         data-id="${value.item_id}"
-                         data-description="${value.description}"
-                         data-price="${value.sell_price}"
-                         data-images='${JSON.stringify(imagesList)}'
-                         data-stock="${stockQty}"
-                         data-primary="${primaryImage || ''}">Add to Cart</a>
-                </div>
-                </div>
+                                const item = `<div class="col-md-6 col-lg-3 mb-4">
+                  <article class="product-card" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
+                    <div class="product-image">
+                      <button type="button" class="nav-arrow left" aria-label="Previous image">‹</button>
+                      <img src="${imagePath}" alt="${escapeHtml(value.camera_model || value.description)}" />
+                      <button type="button" class="nav-arrow right" aria-label="Next image">›</button>
+                    </div>
+                    <div class="product-body">
+                      <div class="product-brand">${escapeHtml(value.camera_brand || 'Vintage')}</div>
+                      <div class="product-title">${escapeHtml(value.camera_model || value.description)}</div>
+                      <div class="product-description">${escapeHtml(value.description || '')}</div>
+                      <div class="product-tags">
+                        <span class="product-condition">${escapeHtml(value.condition || 'Unknown')}</span>
+                        <span class="product-stock">Stock: ${stockQty}</span>
+                      </div>
+                      <div class="product-price">₱ ${parseFloat(value.sell_price).toFixed(2)}</div>
+                      <div class="product-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-details show-details"
+                          data-id="${value.item_id}"
+                          data-description="${escapeHtml(value.description)}"
+                          data-price="${value.sell_price}"
+                          data-images='${JSON.stringify(imagesList)}'
+                          data-stock="${stockQty}"
+                          data-primary="${primaryImage || ''}">
+                          Details
+                        </button>
+                        <button type="button" class="btn btn-primary btn-details show-details"
+                          data-id="${value.item_id}"
+                          data-description="${escapeHtml(value.description)}"
+                          data-price="${value.sell_price}"
+                          data-images='${JSON.stringify(imagesList)}'
+                          data-stock="${stockQty}"
+                          data-primary="${primaryImage || ''}">
+                          Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  </article>
                 </div>`;
                 row.append(item);
 
             });
+
+            attachShopSearchAutocomplete();
+
             if ($('#productDetailsModal').length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="productDetailsModal" tabindex="-1" role="dialog" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
