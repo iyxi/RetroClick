@@ -7,12 +7,12 @@ const {
     updateOrder,
     deleteOrder
 } = require('../controllers/order');
-const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth');
+const { isAuthenticatedUser, isManager } = require('../middlewares/auth');
 
-router.get('/orders', isAuthenticatedUser, isAdmin, getAllOrders);
-router.get('/orders/:id', isAuthenticatedUser, isAdmin, getSingleOrder);
-router.post('/orders', isAuthenticatedUser, isAdmin, createOrder);
-router.put('/orders/:id', isAuthenticatedUser, isAdmin, updateOrder);
-router.delete('/orders/:id', isAuthenticatedUser, isAdmin, deleteOrder);
+router.get('/orders', isAuthenticatedUser, isManager, getAllOrders);
+router.get('/orders/:id', isAuthenticatedUser, isManager, getSingleOrder);
+router.post('/orders', isAuthenticatedUser, isManager, createOrder);
+router.put('/orders/:id', isAuthenticatedUser, isManager, updateOrder);
+router.delete('/orders/:id', isAuthenticatedUser, isManager, deleteOrder);
 
 module.exports = router;

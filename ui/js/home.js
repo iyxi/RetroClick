@@ -20,15 +20,43 @@ $(document).ready(function () {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
+    const normalizeImageList = (value) => {
+      const images = Array.isArray(value?.ItemImages) ? value.ItemImages.slice() : [];
+      if (!images.length && value?.img_path) {
+        images.push({ image_path: value.img_path, is_primary: true, sort_order: 0 });
+      }
+      return images.slice().sort((a, b) => {
+        const orderA = Number.isFinite(a?.sort_order) ? a.sort_order : 0;
+        const orderB = Number.isFinite(b?.sort_order) ? b.sort_order : 0;
+        if (orderA !== orderB) return orderA - orderB;
+        const primaryA = a?.is_primary ? 0 : 1;
+        const primaryB = b?.is_primary ? 0 : 1;
+        if (primaryA !== primaryB) return primaryA - primaryB;
+        return (a?.image_id || 0) - (b?.image_id || 0);
+      });
+    };
+
+    const parseImagesDataAttr = (element) => {
+      if (!element || !element.length) return [];
+      const imagesAttr = element.attr('data-images');
+      if (!imagesAttr) {
+        const dataImages = element.data('images');
+        return Array.isArray(dataImages) ? dataImages : [];
+      }
+      try {
+        return JSON.parse(decodeURIComponent(imagesAttr));
+      } catch (err) {
+        const fallback = element.data('images');
+        return Array.isArray(fallback) ? fallback : [];
+      }
+    };
+
     const renderItemCard = (value) => {
       const stockQty = value.quantity ?? 0;
-      const imagesList = (value.ItemImages && value.ItemImages.length) ? value.ItemImages.slice() : [];
-      if (!imagesList.length && value.img_path) {
-        imagesList.push({ image_path: value.img_path });
-      }
+      const imagesList = normalizeImageList(value);
       const primaryImage = imagesList.length ? imagesList[0].image_path : null;
       const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
-      const imagesAttrEscaped = JSON.stringify(imagesList).replace(/</g, '\u003c');
+      const imagesAttrEscaped = encodeURIComponent(JSON.stringify(imagesList));
 
       return `
         <div class="col-12 col-md-6 col-lg-4 mb-4">
@@ -339,9 +367,14 @@ $(document).ready(function () {
     };
 
     window.filterByBrand = function (brand) {
+      const normalizedTarget = String(brand || '').trim().toLowerCase();
       document.querySelectorAll('.filter-brand').forEach(function (box) {
-        box.checked = !!brand && box.value === brand;
+        const normalizedValue = String(box.value || '').trim().toLowerCase();
+        box.checked = normalizedTarget && normalizedValue === normalizedTarget;
       });
+      if (typeof window.shopApplyFilters === 'function') {
+        window.shopApplyFilters();
+      }
       if (typeof applyAllFilters === 'function') {
         applyAllFilters();
       }
@@ -429,19 +462,7 @@ $(document).ready(function () {
                 const id = $(this).data('id');
                 const description = $(this).data('description');
                 const price = $(this).data('price');
-                // Read images reliably from the data attribute. jQuery.data may not parse complex JSON consistently,
-                // so parse the attribute explicitly and fall back to .data() if needed.
-                let images = [];
-                const imagesAttr = $(this).attr('data-images');
-                if (imagesAttr) {
-                    try {
-                        images = JSON.parse(imagesAttr);
-                    } catch (err) {
-                        images = $(this).data('images') || [];
-                    }
-                } else {
-                    images = $(this).data('images') || [];
-                }
+                const images = parseImagesDataAttr($(this));
                 const stock = $(this).data('stock');
 
                 const carouselId = `productCarousel-${id}`;
@@ -492,23 +513,14 @@ $(document).ready(function () {
                 const isPrev = $(this).hasClass('carousel-prev');
                 const card = $(this).closest('.product-card');
                 if (!card || !card.length) return;
-                let images = [];
-                const imagesAttr = card.attr('data-images');
-                if (imagesAttr) {
-                    try {
-                        images = JSON.parse(imagesAttr);
-                    } catch (err) {
-                        images = card.data('images') || [];
-                    }
-                } else {
-                    images = card.data('images') || [];
-                }
+                const images = parseImagesDataAttr(card);
                 if (!images || !images.length) return;
                 let idx = parseInt(card.attr('data-index') || '0', 10);
+                if (Number.isNaN(idx)) idx = 0;
                 idx = isPrev ? (idx - 1 + images.length) % images.length : (idx + 1) % images.length;
                 card.attr('data-index', idx);
                 const img = card.find('.product-image img').first();
-                const imgPath = images[idx] && images[idx].image_path ? `${url}${encodeURI(images[idx].image_path)}` : 'https://via.placeholder.com/400x250?text=No+Image';
+                const imgPath = images[idx]?.image_path ? `${url}${encodeURI(images[idx].image_path)}` : 'https://via.placeholder.com/400x250?text=No+Image';
                 img.attr('src', imgPath);
             });
 

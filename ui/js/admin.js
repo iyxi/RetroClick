@@ -57,14 +57,37 @@ $(document).ready(function() {
     // Product button delegation
     $('#productsTable').on('click', 'button.btn-edit', function(e) {
         e.preventDefault();
-        showProductForm($(this).data('id'));
+        showEditProductForm(this, $(this).data('id'));
     });
 
     $('#productsTable').on('click', 'button.btn-visibility', function(e) {
         e.preventDefault();
         const id = $(this).data('id');
-        const visible = $(this).data('visible') === true || $(this).data('visible') === 'true';
+        const visible = $(this).data('visible') === true || $(this).data('visible') === 'true' || $(this).data('visible') === 1 || $(this).data('visible') === '1';
         toggleProductVisibility(id, visible);
+    });
+
+    // Sidebar navigation
+    $('.sidebar').on('click', '.nav-item', function() {
+        const tabName = $(this).data('tab');
+        if (!tabName) return;
+
+        $('.tab-content').removeClass('active');
+        $('#' + tabName).addClass('active');
+        $('.sidebar .nav-item').removeClass('active');
+        $(this).addClass('active');
+
+        if (tabName === 'dashboard') {
+            loadDashboard();
+        } else if (tabName === 'products') {
+            loadProducts();
+        } else if (tabName === 'orders') {
+            loadOrders();
+        } else if (tabName === 'users') {
+            loadUsers();
+        } else if (tabName === 'stock') {
+            loadStock();
+        }
     });
 
     // Load dashboard stats
@@ -134,11 +157,17 @@ $(document).ready(function() {
     };
 
     // Tab switching
-    window.showTab = function(tabName) {
+    window.showTab = function(eventOrTabName, maybeTabName) {
+        const event = maybeTabName ? eventOrTabName : null;
+        const tabName = maybeTabName || eventOrTabName;
+
         $('.tab-content').removeClass('active');
         $('#' + tabName).addClass('active');
         $('.nav-item').removeClass('active');
-        event.target.closest('button').classList.add('active');
+        if (event && event.target) {
+            const button = event.target.closest('button');
+            if (button) button.classList.add('active');
+        }
 
         if (tabName === 'dashboard') {
             loadDashboard();
@@ -214,9 +243,8 @@ $(document).ready(function() {
         });
     };
 
-    window.hideProductForm = function() {
-        $('#productForm').hide();
-        $('#pForm')[0].reset();
+    window.showProductForm = function(id) {
+        showEditProductForm(id);
     };
 
     window.hideProductForm = function() {
@@ -306,7 +334,7 @@ $(document).ready(function() {
                 if (data.rows && data.rows.length > 0) {
                     data.rows.forEach(product => {
                         const stock = product.quantity || 0;
-                        const visible = product.is_visible !== false;
+                        const visible = product.is_visible === true || product.is_visible === 1 || product.is_visible === '1';
                         const statusLabel = visible ? 'Active' : 'Archived';
                         const statusClass = visible ? 'badge-success' : 'badge-secondary';
                         const visibilityAction = visible ? 'Archive' : 'Restore';
@@ -325,8 +353,8 @@ $(document).ready(function() {
                             <td>${stock}</td>
                             <td><span class="badge ${statusClass}">${statusLabel}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action btn-edit" ${dataAttrs} onclick="showEditProductForm(this, ${product.item_id})" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-warning btn-action btn-visibility" onclick="toggleProductVisibility(${product.item_id}, ${visible})" title="${visibilityAction}"><i class="fas ${visibilityIcon}"></i></button>
+                                <button class="btn btn-sm btn-info btn-action btn-edit" ${dataAttrs} data-id="${product.item_id}" data-visible="${visible}" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-warning btn-action btn-visibility" data-id="${product.item_id}" data-visible="${visible}" title="${visibilityAction}"><i class="fas ${visibilityIcon}"></i></button>
                             </td>
                         </tr>`;
                     });
@@ -354,16 +382,17 @@ $(document).ready(function() {
     };
 
     window.toggleProductVisibility = function(id, visible) {
-        const action = visible ? 'archive' : 'restore';
-        const title = visible ? 'Archive Product?' : 'Restore Product?';
-        const text = visible ? 'This product will be hidden from the storefront.' : 'This product will become visible again.';
+        const shouldArchive = visible === true || visible === 'true' || visible === 1 || visible === '1';
+        const action = shouldArchive ? 'archive' : 'restore';
+        const title = shouldArchive ? 'Archive Product?' : 'Restore Product?';
+        const text = shouldArchive ? 'This product will be hidden from the storefront.' : 'This product will become visible again.';
 
         Swal.fire({
             title,
             text,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: visible ? 'Yes, Archive' : 'Yes, Restore',
+            confirmButtonText: shouldArchive ? 'Yes, Archive' : 'Yes, Restore',
             cancelButtonText: 'Cancel',
             allowOutsideClick: false
         }).then(result => {

@@ -1306,8 +1306,12 @@ textarea:focus {
 .product-actions button {
   transition: transform .2s var(--ease), box-shadow .2s var(--ease);
   width: 100%;
-  font-size: 0.9rem;
-  padding: 0.75rem 0.85rem;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.7rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-actions .btn-details,

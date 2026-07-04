@@ -31,7 +31,8 @@ exports.getPublicItems = async (req, res) => {
             order: [[ItemImage, 'sort_order', 'ASC'], ['created_at', 'DESC']]
         });
 
-        return res.status(200).json({ rows: items, success: true });
+        const rows = items.map(normalizeItemImages);
+        return res.status(200).json({ rows, success: true });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching public items', details: error.message });
@@ -64,7 +65,8 @@ exports.searchPublicItems = async (req, res) => {
             order: [[ItemImage, 'sort_order', 'ASC'], ['created_at', 'DESC']]
         });
 
-        return res.status(200).json({ rows: items, success: true, query: q });
+        const rows = items.map(normalizeItemImages);
+        return res.status(200).json({ rows, success: true, query: q });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error searching public items', details: error.message });
@@ -86,7 +88,7 @@ exports.getSingleItem = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Item not found' });
         }
 
-        return res.status(200).json({ success: true, result: item });
+        return res.status(200).json({ success: true, result: normalizeItemImages(item) });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching item', details: error.message });
@@ -107,6 +109,28 @@ const parseNumber = (value, fallback = undefined) => {
     if (value === undefined || value === null || value === '') return fallback;
     const number = Number(value);
     return Number.isNaN(number) ? fallback : number;
+};
+
+const normalizeItemImages = (item) => {
+    const raw = item && typeof item.toJSON === 'function' ? item.toJSON() : item;
+    let images = Array.isArray(raw.ItemImages) ? raw.ItemImages.slice() : [];
+
+    if (!images.length && raw.img_path) {
+        images.push({ image_path: raw.img_path, is_primary: true, sort_order: 0 });
+    }
+
+    images = images.slice().sort((a, b) => {
+        const orderA = Number.isFinite(a?.sort_order) ? a.sort_order : 0;
+        const orderB = Number.isFinite(b?.sort_order) ? b.sort_order : 0;
+        if (orderA !== orderB) return orderA - orderB;
+        const primaryA = a?.is_primary ? 0 : 1;
+        const primaryB = b?.is_primary ? 0 : 1;
+        if (primaryA !== primaryB) return primaryA - primaryB;
+        return (a?.image_id || 0) - (b?.image_id || 0);
+    });
+
+    raw.ItemImages = images;
+    return raw;
 };
 
 exports.createItem = async (req, res, next) => {
@@ -130,7 +154,7 @@ exports.createItem = async (req, res, next) => {
         const uploaded = req.files || [];
         const filePaths = uploaded.map(f => f.path.replace(/\\/g, "/"));
         if (filePaths.length) {
-            imagePath = filePaths[0]; // primary image
+            imagePath = filePaths[0]; // primary image fallback
         }
 
         const parsedCostPrice = parseNumber(cost_price, 0);
@@ -160,12 +184,13 @@ exports.createItem = async (req, res, next) => {
             is_available: parsedAvailable !== undefined ? parsedAvailable : true
         });
 
-        if (imagePaths.length) {
-            for (let i = 0; i < imagePaths.length; i++) {
+        if (filePaths.length) {
+            for (let i = 0; i < filePaths.length; i++) {
                 await ItemImage.create({
                     item_id: item.item_id,
-                    image_path: imagePaths[i],
-                    is_primary: i === 0
+                    image_path: filePaths[i],
+                    is_primary: i === 0,
+                    sort_order: i
                 });
             }
         }
@@ -237,21 +262,22 @@ exports.updateItem = async (req, res, next) => {
             is_available: parsedAvailable !== undefined ? parsedAvailable : undefined
         };
 
-        if (imagePaths.length) {
-            updateData.img_path = JSON.stringify(imagePaths);
-        }
-
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
         await Item.update(updateData, { where: { item_id: id } });
 
         if (imagePaths.length) {
+            const existingImageCount = await ItemImage.count({ where: { item_id: id } });
             for (let i = 0; i < imagePaths.length; i++) {
                 await ItemImage.create({
                     item_id: id,
                     image_path: imagePaths[i],
-                    is_primary: i === 0
+                    is_primary: existingImageCount === 0 && i === 0,
+                    sort_order: existingImageCount + i
                 });
+            }
+            if (existingImageCount === 0) {
+                await Item.update({ img_path: imagePaths[0] }, { where: { item_id: id } });
             }
         }
 

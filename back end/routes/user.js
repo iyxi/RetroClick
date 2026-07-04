@@ -19,7 +19,7 @@ const {
 } = require('../controllers/userManagement')
 const { sendToken } = require('../controllers/userManagement')
 
-const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth')
+const { isAuthenticatedUser, isManager } = require('../middlewares/auth')
 
 // User auth routes
 router.post('/register', registerUser)
@@ -28,13 +28,13 @@ router.post('/update-profile', isAuthenticatedUser, upload.any(), updateUser)
 router.delete('/deactivate', deactivateUser)
 
 // Admin user management routes
-router.get('/users', isAuthenticatedUser, isAdmin, getAllUsers)
-router.get('/users/:id', isAuthenticatedUser, isAdmin, getSingleUser)
-router.put('/users/:id/role', isAuthenticatedUser, isAdmin, updateUserRole)
-router.put('/users/:id/deactivate', isAuthenticatedUser, isAdmin, deactivateUserAdmin)
-router.put('/users/:id/activate', isAuthenticatedUser, isAdmin, activateUser)
-router.put('/users/:id/reset-password', isAuthenticatedUser, isAdmin, resetUserPassword)
-router.delete('/users/:id', isAuthenticatedUser, isAdmin, deleteUserPermanent)
-router.post('/users/:id/send-token', isAuthenticatedUser, isAdmin, sendToken)
+router.get('/users', isAuthenticatedUser, isManager, getAllUsers)
+router.get('/users/:id', isAuthenticatedUser, isManager, getSingleUser)
+router.put('/users/:id/role', isAuthenticatedUser, isManager, updateUserRole)
+router.put('/users/:id/deactivate', isAuthenticatedUser, isManager, deactivateUserAdmin)
+router.put('/users/:id/activate', isAuthenticatedUser, isManager, activateUser)
+router.put('/users/:id/reset-password', isAuthenticatedUser, isManager, resetUserPassword)
+router.delete('/users/:id', isAuthenticatedUser, isManager, deleteUserPermanent)
+router.post('/users/:id/send-token', isAuthenticatedUser, isManager, sendToken)
 
 module.exports = router
