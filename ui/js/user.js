@@ -193,15 +193,7 @@ $(document).ready(function () {
             return;
         }
 
-        // Validate phone is not empty
-        const phone = $('#phone').val().trim();
-        if (!phone) {
-            Swal.fire({
-                icon: 'error',
-                text: 'Phone number is required'
-            });
-            return;
-        }
+
 
         const newPassword = $('#newPassword').val().trim();
         const confirmPassword = $('#confirmPassword').val().trim();
@@ -223,6 +215,7 @@ $(document).ready(function () {
         }
 
         const data = $('#profileForm')[0];
+        const token = getStoredToken();
 
         const formData = new FormData(data);
         formData.append('userId', userId)
@@ -230,6 +223,9 @@ $(document).ready(function () {
         $.ajax({
             method: "POST",
             url: `${url}api/v1/update-profile`,
+            headers: { 
+                Authorization: `Bearer ${token}` 
+            },
             data: formData,
             contentType: false,
             processData: false,
@@ -258,10 +254,15 @@ $(document).ready(function () {
                 });
             },
             error: function (error) {
-                console.log(error);
+                console.log('Profile update error:', error);
+                const errorMsg = error.responseJSON?.error || error.responseJSON?.message || error.statusText || 'Failed to update profile';
                 Swal.fire({
                     icon: 'error',
-                    text: error.responseJSON?.error || 'Failed to update profile'
+                    title: 'Update Failed',
+                    text: errorMsg,
+                    didOpen: () => {
+                        console.log('Backend error details:', error.responseJSON);
+                    }
                 });
             }
         });
@@ -305,22 +306,9 @@ $(document).ready(function () {
         });
     });
 
-    $("#logout").on('click', function (e) {
+    $("#profileResetBtn").on('click', function (e) {
         e.preventDefault();
-        Swal.fire({
-            text: 'logout',
-            showConfirmButton: false,
-            position: 'bottom-right',
-            timer: 1000,
-            timerProgressBar: true
-
-        });
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('userId')
-        sessionStorage.removeItem('userRole')
-        sessionStorage.removeItem('userName')
-        window.location.href = 'login.html'
-
+        location.reload();
     });
 
     loadSharedHeader(function () {

@@ -105,10 +105,6 @@ const updateUser = async (req, res) => {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        if (!phone || phone.trim() === '') {
-            return res.status(400).json({ error: 'Phone number is required' });
-        }
-
         // Convert userId to integer
         const userIdInt = parseInt(userId, 10);
         if (isNaN(userIdInt)) {
@@ -143,11 +139,11 @@ const updateUser = async (req, res) => {
         const [customer, created] = await Customer.findOrCreate({
             where: { user_id: userIdInt },
             defaults: {
-                fname,
-                lname,
-                addressline,
-                zipcode,
-                phone,
+                fname: fname || null,
+                lname: lname || null,
+                addressline: addressline || null,
+                zipcode: zipcode || null,
+                phone: phone || null,
                 image_path: imagePath,
                 user_id: userIdInt
             }
@@ -155,14 +151,15 @@ const updateUser = async (req, res) => {
 
         // Update if already exists
         if (!created) {
-            await customer.update({
-                fname: fname || customer.fname,
-                lname: lname || customer.lname,
-                addressline: addressline || customer.addressline,
-                zipcode: zipcode || customer.zipcode,
-                phone: phone || customer.phone,
+            const updateObj = {
                 image_path: imagePath || customer.image_path
-            });
+            };
+            if (fname !== undefined) updateObj.fname = fname;
+            if (lname !== undefined) updateObj.lname = lname;
+            if (addressline !== undefined) updateObj.addressline = addressline;
+            if (zipcode !== undefined) updateObj.zipcode = zipcode;
+            if (phone !== undefined) updateObj.phone = phone;
+            await customer.update(updateObj);
         }
 
         if (newPassword) {
@@ -193,11 +190,6 @@ const deactivateUser = async (req, res) => {
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
-
-            const updatedName = `${fname || ''} ${lname || ''}`.trim();
-            if (updatedName) {
-                await user.update({ name: updatedName });
-            }
             return res.status(404).json({ error: 'User not found' });
         }
 

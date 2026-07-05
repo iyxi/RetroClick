@@ -4,7 +4,113 @@ const OrderLine = db.OrderLine;
 const Item = db.Item;
 const User = db.User;
 const Customer = db.Customer;
+const EmailNotification = db.EmailNotification;
 const sendEmail = require('../utils/sendEmail');
+
+const formatCurrency = (value) => `₱${Number(value || 0).toFixed(2)}`;
+
+const escapePdfText = (text) => String(text || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total }) => {
+    const lines = [
+        'RetroClick Receipt',
+        `Order #${orderId}`,
+        `Customer: ${customerName}`,
+        `Delivery Address: ${address}`,
+        '',
+        'Items:'
+    ];
+
+    items.forEach((item, index) => {
+        lines.push(`${index + 1}. ${item.name} | Qty: ${item.quantity} | Price: ${formatCurrency(item.price)} | Line Total: ${formatCurrency(item.total || item.price * item.quantity)}`);
+    });
+
+    lines.push('', `Shipping: ${formatCurrency(shippingFee)}`);
+    lines.push(`Total: ${formatCurrency(total)}`);
+
+    const contentLines = lines.map((line) => `(${escapePdfText(line)}) Tj\n0 -14 Td`);
+    const contentStream = `BT\n/F1 11 Tf\n72 760 Td\n${contentLines.join('\n')}\nET`;
+
+    const objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+        `<< /Length ${Buffer.byteLength(contentStream, 'utf8')} >>\nstream\n${contentStream}\nendstream`,
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+    ];
+
+    const pdfParts = ['%PDF-1.4\n'];
+    const offsets = [];
+
+    objects.forEach((obj, index) => {
+        offsets.push(pdfParts.join('').length);
+        pdfParts.push(`${index + 1} 0 obj\n`);
+        pdfParts.push(`${obj}\n`);
+        pdfParts.push('endobj\n');
+    });
+
+    const xrefOffset = pdfParts.join('').length;
+    pdfParts.push(`xref\n0 ${objects.length + 1}\n`);
+    pdfParts.push('0000000000 65535 f \n');
+    offsets.forEach((offset) => {
+        pdfParts.push(`${String(offset).padStart(10, '0')} 00000 n \n`);
+    });
+    pdfParts.push(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+
+    return Buffer.from(pdfParts.join(''), 'utf8');
+};
+
+const createNotificationRecord = async ({ orderId, userId, email, subject, body, status, errorMessage }) => {
+    try {
+        await EmailNotification.create({
+            orderinfo_id: orderId,
+            user_id: userId,
+            recipient_email: email,
+            subject,
+            body,
+            status,
+            sent_at: status === 'Sent' ? new Date() : null,
+            error_message: errorMessage || null
+        });
+    } catch (notificationError) {
+        console.log('Notification logging error:', notificationError.message);
+    }
+};
+
+const sendOrderEmail = async ({ orderId, recipientEmail, recipientName, subject, html, attachments = [] }) => {
+    if (!recipientEmail) {
+        return;
+    }
+
+    try {
+        await sendEmail({
+            email: recipientEmail,
+            subject,
+            html,
+            attachments
+        });
+
+        await createNotificationRecord({
+            orderId,
+            userId: null,
+            email: recipientEmail,
+            subject,
+            body: html,
+            status: 'Sent'
+        });
+    } catch (emailError) {
+        console.log('Email error:', emailError.message);
+        await createNotificationRecord({
+            orderId,
+            userId: null,
+            email: recipientEmail,
+            subject,
+            body: html,
+            status: 'Failed',
+            errorMessage: emailError.message
+        });
+    }
+};
 
 // Get all orders with details
 exports.getAllOrders = async (req, res) => {
@@ -169,17 +275,43 @@ exports.createOrder = async (req, res) => {
             });
         }
 
-        // Get user email and send confirmation
+        const fullName = [customer.fname, customer.lname].filter(Boolean).join(' ').trim() || userRecord.name || 'Customer';
+        const deliveryAddress = [customer.addressline, customer.zipcode].filter(Boolean).join(', ') || shippingData.address1 || 'To be confirmed';
+        const orderItems = cart.map((item) => ({
+            name: item.name || item.description || `Item #${item.item_id}`,
+            quantity: Number(item.quantity || 0),
+            price: Number(item.price || 0),
+            total: Number(item.price || 0) * Number(item.quantity || 0)
+        }));
+        const receiptPdf = buildReceiptPdf({
+            orderId: order.orderinfo_id,
+            customerName: fullName,
+            address: deliveryAddress,
+            items: orderItems,
+            shippingFee: Number(shippingFee || 0),
+            total
+        });
+
         if (userRecord && userRecord.email) {
-            try {
-                await sendEmail({
-                    email: userRecord.email,
-                    subject: 'Order Confirmation - RetroClick',
-                    message: `Your order #${order.orderinfo_id} has been placed successfully. Total: ₱${Number(total).toFixed(2)}`
-                });
-            } catch (emailErr) {
-                console.log('Email error:', emailErr);
-            }
+            const html = `
+                <h2>Order Confirmation</h2>
+                <p>Hi ${fullName},</p>
+                <p>Your order #${order.orderinfo_id} has been placed successfully.</p>
+                <p><strong>Total:</strong> ${formatCurrency(total)}</p>
+                <p>We have attached your receipt with the delivery details.</p>
+            `;
+            await sendOrderEmail({
+                orderId: order.orderinfo_id,
+                recipientEmail: userRecord.email,
+                recipientName: fullName,
+                subject: 'Order Confirmation - RetroClick',
+                html,
+                attachments: [{
+                    filename: `receipt-${order.orderinfo_id}.pdf`,
+                    content: receiptPdf,
+                    contentType: 'application/pdf'
+                }]
+            });
         }
 
         return res.status(201).json({
@@ -228,7 +360,33 @@ exports.updateOrder = async (req, res) => {
             updateData.status = normalizedStatus;
         }
 
+        const previousStatus = order.status;
         await Order.update(updateData, { where: { orderinfo_id: id } });
+
+        if (status !== undefined && updateData.status && ['Processing', 'Completed'].includes(updateData.status) && previousStatus !== updateData.status) {
+            const customer = await Customer.findOne({ where: { customer_id: order.customer_id } });
+            const linkedUser = customer?.user_id ? await User.findOne({
+                where: { id: customer.user_id },
+                attributes: ['id', 'name', 'email'],
+                raw: true
+            }) : null;
+
+            if (linkedUser?.email) {
+                const html = `
+                    <h2>Order Update</h2>
+                    <p>Hi ${linkedUser.name || 'Customer'},</p>
+                    <p>Your order #${order.orderinfo_id} is now <strong>${updateData.status}</strong>.</p>
+                    <p>Thank you for shopping with RetroClick.</p>
+                `;
+                await sendOrderEmail({
+                    orderId: order.orderinfo_id,
+                    recipientEmail: linkedUser.email,
+                    recipientName: linkedUser.name || 'Customer',
+                    subject: `Order ${updateData.status} - RetroClick`,
+                    html
+                });
+            }
+        }
 
         return res.status(200).json({
             success: true,

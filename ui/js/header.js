@@ -50,42 +50,57 @@ const setHeaderState = () => {
   const $loginLink = $('#nav-login');
   const $navbarNav = $('.navbar-nav.ml-auto');
 
-  let $profileLink = $('#nav-profile');
-  if (!$profileLink.length && $navbarNav.length) {
-    $profileLink = $(
-      '<li class="nav-item" id="nav-profile-item"><a class="nav-link" id="nav-profile" href="profile.html">Profile</a></li>'
-    );
-    $navbarNav.find('li').eq(3).after($profileLink);
-  }
-
   if (!$loginLink.length) return;
 
   if (token) {
-    $loginLink.text('Logout').attr('href', '#');
-    $loginLink.off('click').on('click', function (e) {
-      e.preventDefault();
-      sessionStorage.clear();
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      window.location.href = 'login.html';
-    });
+    const userRoleStr = String(userRole).toLowerCase();
+    if (userRoleStr === 'customer' || !userRole) {
+      // For customers: show Profile link and add Logout link
+      $loginLink.text('Profile').attr('href', 'profile.html');
+      $loginLink.off('click');
 
-    if ($profileLink.length) {
-      if (String(userRole).toLowerCase() === 'customer' || !userRole) {
-        $profileLink.show();
-      } else {
-        $profileLink.hide();
+      // Add logout link if it doesn't exist
+      let $logoutLink = $('#nav-logout');
+      if (!$logoutLink.length) {
+        $logoutLink = $('<li class="nav-item"><a class="nav-link" id="nav-logout" href="#">Logout</a></li>');
+        $navbarNav.append($logoutLink);
       }
+
+      $logoutLink.off('click').on('click', function (e) {
+        e.preventDefault();
+        sessionStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
+        window.location.href = 'login.html';
+      });
+    } else {
+      // For admins/managers: show Logout in the nav-login link
+      $loginLink.text('Logout').attr('href', '#');
+      $loginLink.off('click').on('click', function (e) {
+        e.preventDefault();
+        sessionStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
+        window.location.href = 'login.html';
+      });
+
+      // Remove logout link if it exists
+      $('#nav-logout').closest('li').remove();
     }
   } else {
     $loginLink.text('Login').attr('href', 'login.html');
     $loginLink.off('click');
-    if ($profileLink.length) {
-      $profileLink.hide();
-    }
+
+    // Remove logout link if it exists
+    $('#nav-logout').closest('li').remove();
+  }
+};
   }
 };
 
