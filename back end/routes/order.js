@@ -11,7 +11,7 @@ const { isAuthenticatedUser, isManager } = require('../middlewares/auth');
 
 router.get('/orders', isAuthenticatedUser, isManager, getAllOrders);
 router.get('/orders/:id', isAuthenticatedUser, isManager, getSingleOrder);
-router.post('/orders', isAuthenticatedUser, isManager, createOrder);
+router.post('/orders', isAuthenticatedUser, createOrder);
 router.put('/orders/:id', isAuthenticatedUser, isManager, updateOrder);
 router.delete('/orders/:id', isAuthenticatedUser, isManager, deleteOrder);
 

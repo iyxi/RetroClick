@@ -1,93 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | RetroClick</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/user.js"></script>
+  <style>
+    .profile-shell {
+      padding: 2.5rem 0 4rem;
+    }
 
-    <!-- Latest compiled and minified CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-      crossorigin="anonymous"
-    />
+    .profile-hero {
+      margin-bottom: 1.5rem;
+      padding: 1.5rem 1.75rem;
+      border: 1px solid rgba(117, 66, 36, 0.12);
+      border-radius: 20px;
+      background: rgba(255, 248, 232, 0.68);
+      box-shadow: 0 12px 30px rgba(80, 44, 17, 0.08);
+    }
 
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
-      integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Outfit:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
-    <link rel="stylesheet" href="css/style.css" />
-    <script
-      src="https://code.jquery.com/jquery-3.6.4.min.js"
-      integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-      crossorigin="anonymous"
-    ></script>
+    .profile-hero h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      letter-spacing: 0.04em;
+      color: var(--ink);
+    }
 
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
-      integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script src="js/header.js"></script>
-    <script src="js/user.js"></script>
-    <title>Profile</title>
-  </head>
-  <body >
-    <div id="header"></div>
-    <div id="profile"></div>
-    <div class="container">
-      <h1>User Profile</h1>
-      <form id="profileForm">
-        <div class="form-group">
-          <label for="avatar">Avatar:</label>
-          <input type="file" id="avatar" name="image" "image/*" />
-          <img
-            id="avatarPreview"
-            src="#"
-            alt="Avatar Preview"
-            
-          />
+    .profile-hero p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      max-width: 46rem;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.8fr);
+      gap: 1.5rem;
+    }
+
+    .profile-card {
+      padding: 1.5rem;
+      border: 1px solid rgba(117, 66, 36, 0.12);
+      border-radius: 20px;
+      background: rgba(255, 248, 232, 0.9);
+      box-shadow: 0 12px 30px rgba(80, 44, 17, 0.08);
+    }
+
+    .profile-card h2 {
+      font-family: var(--font-display);
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      margin-bottom: 1rem;
+    }
+
+    .profile-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      text-align: center;
+    }
+
+    .profile-avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid rgba(117, 66, 36, 0.18);
+      background: #fff;
+      box-shadow: 0 12px 25px rgba(80, 44, 17, 0.12);
+    }
+
+    .profile-meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .section-divider {
+      margin: 1.35rem 0;
+      border-top: 1px solid rgba(117, 66, 36, 0.12);
+    }
+
+    .form-note {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    @media (max-width: 991px) {
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="profile-shell container">
+    <section class="profile-hero">
+      <h1>My Profile</h1>
+      <p>Update your personal details, shipping information, avatar, and password from one place.</p>
+    </section>
+
+    <div class="profile-grid">
+      <section class="profile-card">
+        <h2>Account Details</h2>
+        <form id="profileForm" enctype="multipart/form-data">
+          <input type="hidden" id="profileUserId" name="userId">
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="firstName">First Name</label>
+              <input type="text" class="form-control" id="firstName" name="fname" placeholder="First name">
+            </div>
+            <div class="form-group col-md-6">
+              <label for="lastName">Last Name</label>
+              <input type="text" class="form-control" id="lastName" name="lname" placeholder="Last name">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="address">Address Line</label>
+            <input type="text" class="form-control" id="address" name="addressline" placeholder="Street, barangay, building, etc.">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="zipcode">ZIP / Postal Code</label>
+              <input type="text" class="form-control" id="zipcode" name="zipcode" placeholder="ZIP code">
+            </div>
+            <div class="form-group col-md-6">
+              <label for="phone">Phone</label>
+              <input type="text" class="form-control" id="phone" name="phone" placeholder="Mobile number" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="avatar">Profile Picture</label>
+            <input type="file" class="form-control-file" id="avatar" name="image" accept="image/*">
+            <div class="form-note">This will be saved to your customer profile image.</div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <h2 style="font-size: 1.35rem;">Change Password</h2>
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" class="form-control" id="currentPassword" name="currentPassword" placeholder="Enter current password">
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="newPassword">New Password</label>
+              <input type="password" class="form-control" id="newPassword" name="newPassword" placeholder="New password">
+            </div>
+            <div class="form-group col-md-6">
+              <label for="confirmPassword">Confirm Password</label>
+              <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm new password">
+            </div>
+          </div>
+          <div class="form-note">Leave the password fields blank if you only want to update profile details.</div>
+
+          <div class="profile-actions">
+            <button type="submit" class="btn-primary-custom">Save Changes</button>
+            <button type="button" id="profileResetBtn" class="btn-secondary-custom">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="profile-card">
+        <h2>Preview</h2>
+        <div class="profile-avatar-wrap">
+          <img id="avatarPreview" class="profile-avatar" src="https://via.placeholder.com/300x300?text=Profile" alt="Avatar Preview">
+          <div>
+            <div id="previewName" style="font-family: var(--font-display); font-size: 1.5rem; color: var(--ink);">Customer</div>
+            <div id="previewEmail" class="profile-meta">email@example.com</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="firstName">First Name:</label>
-          <input type="text" id="firstName" name="fname" />
+
+        <div class="section-divider"></div>
+
+        <div class="profile-meta" id="profileSummary">
+          Your shipping and contact details will appear here after the profile loads.
         </div>
-        <div class="form-group">
-          <label for="lastName">Last Name:</label>
-          <input type="text" id="lastName" name="lname" />
-        </div>
-        <div class="form-group">
-          <label for="address">Address:</label>
-          <input type="text" id="address" name="addressline" />
-        </div>
-        <div class="form-group">
-          <label for="phone">Phone:</label>
-          <input type="text" id="phone" name="phone" required />
-        </div>
-        
-        <div class="form-group">
-          <label for="zipcode">Postcode:</label>
-          <input type="text" id="zipcode" name="zipcode" />
-        </div>
-        <button type="submit" id="updateBtn">Submit</button>
-      </form>
+      </aside>
     </div>
-    <div id="footer"></div>
-  </body>
+  </main>
+
+  <div id="footer"></div>
+</body>
 </html>

@@ -98,7 +98,7 @@ const loginUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
     try {
-        const { fname, lname, addressline, zipcode, phone, userId } = req.body;
+        const { fname, lname, addressline, zipcode, phone, userId, currentPassword, newPassword } = req.body;
 
         // Validate required fields
         if (!userId) {
@@ -116,8 +116,27 @@ const updateUser = async (req, res) => {
         }
 
         let imagePath = null;
-        if (req.file) {
+        const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+        if (uploadedFiles.length) {
+            imagePath = uploadedFiles[0].path.replace(/\\/g, "/");
+        } else if (req.file) {
             imagePath = req.file.path.replace(/\\/g, "/");
+        }
+
+        const user = await User.findOne({ where: { id: userIdInt } });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ error: 'Current password is required to change password' });
+            }
+
+            const matches = await bcrypt.compare(currentPassword, user.password);
+            if (!matches) {
+                return res.status(400).json({ error: 'Current password is incorrect' });
+            }
         }
 
         // Find or create customer record
@@ -146,6 +165,11 @@ const updateUser = async (req, res) => {
             });
         }
 
+        if (newPassword) {
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await user.update({ password: hashedPassword });
+        }
+
         return res.status(200).json({
             success: true,
             message: 'Profile updated successfully',
@@ -169,6 +193,11 @@ const deactivateUser = async (req, res) => {
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
+
+            const updatedName = `${fname || ''} ${lname || ''}`.trim();
+            if (updatedName) {
+                await user.update({ name: updatedName });
+            }
             return res.status(404).json({ error: 'User not found' });
         }
 

@@ -328,8 +328,7 @@ button[type="submit"]:active,
 }
 
 .btn-secondary,
-.btn-secondary-custom,
-.btn-details {
+.btn-secondary-custom {
   border-color: var(--sage) !important;
   background: var(--sage) !important;
   color: var(--ink) !important;
@@ -337,11 +336,48 @@ button[type="submit"]:active,
 }
 
 .btn-secondary:hover,
-.btn-secondary-custom:hover,
-.btn-details:hover {
+.btn-secondary-custom:hover {
   border-color: var(--hunter) !important;
   background: var(--hunter) !important;
   color: var(--paper) !important;
+}
+
+.order-status-swal {
+  padding: 1.4rem 1.1rem 1.15rem !important;
+}
+
+.order-status-swal .swal2-html-container {
+  margin: 0.9rem 0 0.25rem !important;
+}
+
+.order-status-swal .swal2-actions {
+  width: 100%;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.order-status-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.order-status-option {
+  width: 100%;
+  border: 1px solid rgba(117, 66, 36, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  padding: 0.65rem 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: left;
+}
+
+.order-status-option.is-active {
+  background: var(--bordeaux);
+  color: var(--paper);
+  border-color: var(--bordeaux);
 }
 
 #deactivateBtn {
@@ -1298,14 +1334,16 @@ textarea:focus {
 
 .product-actions {
   margin-top: auto;
-  display: grid;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 0.75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .product-actions button {
   transition: transform .2s var(--ease), box-shadow .2s var(--ease);
-  width: 100%;
+  width: auto;
+  min-width: 170px;
   font-size: 0.82rem;
   padding: 0.6rem 0.7rem;
   line-height: 1.25;
@@ -1314,9 +1352,8 @@ textarea:focus {
   text-overflow: ellipsis;
 }
 
-.product-actions .btn-details,
 .product-actions .btn-cart {
-  min-width: 0;
+  min-width: 170px;
 }
 
 /* optional corner badge — apply class="badge-corner badge-popular|badge-new|badge-pro"

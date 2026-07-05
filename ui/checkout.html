@@ -56,6 +56,72 @@
             border-color: var(--rust) !important;
             background: rgba(181, 72, 31, 0.05) !important;
         }
+
+        .checkout-step-panel {
+            display: none;
+        }
+
+        .checkout-step-panel.is-active {
+            display: block;
+        }
+
+        .payment-option-grid {
+            display: grid;
+            gap: 0.85rem;
+            margin-top: 0.75rem;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid rgba(117, 66, 36, 0.18);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.52);
+            cursor: pointer;
+        }
+
+        .payment-option input {
+            accent-color: var(--bordeaux);
+        }
+
+        .review-receipt {
+            padding: 1.25rem;
+            border: 1px solid rgba(117, 66, 36, 0.15);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        .receipt-section {
+            margin-top: 1rem;
+        }
+
+        .receipt-section h4 {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--bordeaux);
+        }
+
+        .receipt-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .receipt-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px dashed rgba(117, 66, 36, 0.18);
+        }
+
+        .receipt-list li:last-child {
+            border-bottom: none;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
         integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
@@ -92,64 +158,115 @@
         <div class="checkout-layout">
             <div class="checkout-main">
                 <form class="checkout-form" id="shippingForm">
-                    <div class="checkout-form-section">
-                        <span class="section-eyebrow left">Contact Information</span>
-                        <div class="form-group">
-                            <label for="checkoutEmail">Email Address</label>
-                            <input type="email" id="checkoutEmail" name="email" placeholder="youremail@example.com" required>
+                    <div class="checkout-step-panel is-active" id="checkoutStepShipping">
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Contact Information</span>
+                            <div class="form-group">
+                                <label for="checkoutEmail">Email Address</label>
+                                <input type="email" id="checkoutEmail" name="email" placeholder="youremail@example.com" required>
+                            </div>
+                        </div>
+
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Shipping Address</span>
+                            <div class="form-group">
+                                <label for="checkoutFullName">Full Name</label>
+                                <input type="text" id="checkoutFullName" name="fullname" placeholder="Full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutAddress1">Address Line 1</label>
+                                <input type="text" id="checkoutAddress1" name="address1" placeholder="House number and street name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutAddress2">Address Line 2 (Optional)</label>
+                                <input type="text" id="checkoutAddress2" name="address2" placeholder="Apartment, suite, etc.">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="checkoutCity">City</label>
+                                    <input type="text" id="checkoutCity" name="city" required>
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="checkoutProvince">State / Province</label>
+                                    <input type="text" id="checkoutProvince" name="province" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="checkoutZip">ZIP / Postal Code</label>
+                                    <input type="text" id="checkoutZip" name="zip" required>
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="checkoutCountry">Country</label>
+                                    <select id="checkoutCountry" name="country" required>
+                                        <option value="">Select Country</option>
+                                        <option value="PH">Philippines</option>
+                                        <option value="US">United States</option>
+                                        <option value="JP">Japan</option>
+                                        <option value="SG">Singapore</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="checkout-save-info">
+                                <input type="checkbox" id="saveInfo" checked>
+                                Save this information for next time
+                            </label>
+                        </div>
+
+                        <button type="button" id="continuePaymentBtn" class="btn-primary-custom" style="width: 100%; margin-top: 1.5rem;">
+                            Continue to Payment →
+                        </button>
+                    </div>
+
+                    <div class="checkout-step-panel" id="checkoutStepPayment">
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Payment Method</span>
+                            <p style="margin: 0 0 0.85rem; color: var(--muted);">Choose how you want to pay for this order.</p>
+                            <div class="payment-option-grid">
+                                <label class="payment-option">
+                                    <input type="radio" name="paymentMethod" value="COD" checked>
+                                    <span>
+                                        <strong>Cash on Delivery</strong><br>
+                                        <small>Pay when the item arrives.</small>
+                                    </span>
+                                </label>
+                                <label class="payment-option">
+                                    <input type="radio" name="paymentMethod" value="GCash">
+                                    <span>
+                                        <strong>GCash</strong><br>
+                                        <small>Pay using your GCash account.</small>
+                                    </span>
+                                </label>
+                                <label class="payment-option">
+                                    <input type="radio" name="paymentMethod" value="Card">
+                                    <span>
+                                        <strong>Card</strong><br>
+                                        <small>Debit or credit card.</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+                            <button type="button" id="backToShippingBtn" class="btn-secondary-custom" style="flex:1;">← Back</button>
+                            <button type="button" id="continueReviewBtn" class="btn-primary-custom" style="flex:1;">Review Order →</button>
                         </div>
                     </div>
 
-                    <div class="checkout-form-section">
-                        <span class="section-eyebrow left">Shipping Address</span>
-                        <div class="form-group">
-                            <label for="checkoutFullName">Full Name</label>
-                            <input type="text" id="checkoutFullName" name="fullname" placeholder="Full name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="checkoutAddress1">Address Line 1</label>
-                            <input type="text" id="checkoutAddress1" name="address1" placeholder="House number and street name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="checkoutAddress2">Address Line 2 (Optional)</label>
-                            <input type="text" id="checkoutAddress2" name="address2" placeholder="Apartment, suite, etc.">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group" style="flex: 1;">
-                                <label for="checkoutCity">City</label>
-                                <input type="text" id="checkoutCity" name="city" required>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label for="checkoutProvince">State / Province</label>
-                                <input type="text" id="checkoutProvince" name="province" required>
+                    <div class="checkout-step-panel" id="checkoutStepReview">
+                        <div class="checkout-form-section">
+                            <span class="section-eyebrow left">Review & Receipt</span>
+                            <div class="review-receipt" id="reviewReceipt">
+                                <!-- populated by JS -->
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group" style="flex: 1;">
-                                <label for="checkoutZip">ZIP / Postal Code</label>
-                                <input type="text" id="checkoutZip" name="zip" required>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label for="checkoutCountry">Country</label>
-                                <select id="checkoutCountry" name="country" required>
-                                    <option value="">Select Country</option>
-                                    <option value="PH">Philippines</option>
-                                    <option value="US">United States</option>
-                                    <option value="JP">Japan</option>
-                                    <option value="SG">Singapore</option>
-                                    <option value="OTHER">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <label class="checkout-save-info">
-                            <input type="checkbox" id="saveInfo" checked>
-                            Save this information for next time
-                        </label>
-                    </div>
 
-                    <button type="button" id="continuePaymentBtn" class="btn-primary-custom" style="width: 100%; margin-top: 1.5rem;">
-                        Continue to Payment →
-                    </button>
+                        <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+                            <button type="button" id="backToPaymentBtn" class="btn-secondary-custom" style="flex:1;">← Back</button>
+                            <button type="button" id="placeOrderBtn" class="btn-primary-custom" style="flex:1;">Place Order</button>
+                        </div>
+                    </div>
                 </form>
             </div>
 

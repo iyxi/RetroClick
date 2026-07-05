@@ -205,8 +205,7 @@
                                 </div>
                                 <div class="product-price">₱${parseFloat(product.sell_price).toFixed(2)}</div>
                                 <div class="product-actions">
-                                    <button class="btn-details" data-id="${product.item_id}">Details</button>
-                                    <button class="btn-cart" data-id="${product.item_id}" data-desc="${safeDescription}" data-price="${product.sell_price}" data-img="${escapeHtml(product.img_path || '')}" data-stock="${stockQty}">Add to Cart</button>
+                                    <button class="btn-cart" data-id="${product.item_id}" data-desc="${safeDescription}" data-price="${product.sell_price}" data-img="${escapeHtml(imageUrl)}" data-stock="${stockQty}" ${stockQty <= 0 ? 'disabled' : ''}>${stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}</button>
                                 </div>
                             </div>
                         </div>
@@ -214,9 +213,6 @@
                 `;
             });
             $('#featuredProducts').html(html);
-            $('#featuredProducts').off('click', '.btn-details').on('click', '.btn-details', function () {
-                viewProduct($(this).data('id'));
-            });
             $('#featuredProducts').off('click', '.btn-cart').on('click', '.btn-cart', function () {
                 const button = $(this);
                 addToCart(
@@ -231,51 +227,51 @@
 
         function displaySearchResults(products, query) {
             const getImageUrl = (path) => path ? `http://localhost:3000/${String(path).replace(/^\/+/, '')}` : '';
-            let html = `
-                <div class="search-results-header">
-                    <h2 class="section-title">Search Results for "${query}"</h2>
-                </div>
-                <div class="row">
-            `;
-
             if (!products.length) {
-                html = `
+                $('#searchResults').html(`
                     <div class="search-results-header">
                         <h2 class="section-title">Search Results</h2>
                         <p class="text-center mt-3">No results found for "${query}".</p>
                     </div>
-                `;
-            } else {
-                products.forEach(product => {
-                    const imageUrl = getImageUrl(product.img_path);
-                    html += `
-                        <div class="col-md-4 mb-4">
-                            <div class="product-card">
-                                <div class="product-image">
-                                    ${imageUrl ? `<img src="${imageUrl}" alt="${escapeHtml(product.description)}">` : '<i class="fas fa-camera"></i>'}
+                `);
+                return;
+            }
+
+            const html = products.map(product => {
+                const imageUrl = getImageUrl(product.img_path);
+                const stockQty = product.quantity || 0;
+                return `
+                    <div class="col-md-4 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                ${imageUrl ? `<img src="${imageUrl}" alt="${escapeHtml(product.description)}">` : '<i class="fas fa-camera"></i>'}
+                            </div>
+                            <div class="product-body">
+                                <div class="product-brand">${escapeHtml(product.camera_brand || 'Vintage')}</div>
+                                <div class="product-title">${escapeHtml(product.camera_model || product.description)}</div>
+                                <div class="product-description">${escapeHtml(product.description || 'A carefully curated vintage camera.')}</div>
+                                <div class="product-tags">
+                                    <span class="product-condition">${escapeHtml(product.condition || 'Good')}</span>
+                                    <span class="product-stock">Stock: ${stockQty}</span>
                                 </div>
-                                <div class="product-body">
-                                    <div class="product-brand">${escapeHtml(product.camera_brand || 'Vintage')}</div>
-                                    <div class="product-title">${escapeHtml(product.camera_model || product.description)}</div>
-                                    <div class="product-description">${escapeHtml(product.description || 'A carefully curated vintage camera.')}</div>
-                                    <div class="product-tags">
-                                        <span class="product-condition">${escapeHtml(product.condition || 'Good')}</span>
-                                        <span class="product-stock">Stock: ${product.quantity || 0}</span>
-                                    </div>
-                                    <div class="product-price">₱${parseFloat(product.sell_price).toFixed(2)}</div>
-                                    <div class="product-actions">
-                                        <button class="btn-details" onclick="viewProduct(${product.item_id})">Details</button>
-                                        <button class="btn-cart" onclick="addToCart(${product.item_id}, '${escapeHtml(product.description)}', ${product.sell_price}, '${product.img_path}', ${product.quantity})">Add to Cart</button>
-                                    </div>
+                                <div class="product-price">₱${parseFloat(product.sell_price).toFixed(2)}</div>
+                                <div class="product-actions">
+                                    <button class="btn-cart" onclick="addToCart(${product.item_id}, '${escapeHtml(product.description)}', ${product.sell_price}, '${imageUrl}', ${stockQty})" ${stockQty <= 0 ? 'disabled' : ''}>${stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}</button>
                                 </div>
                             </div>
                         </div>
-                    `;
-                });
-                html += '</div>';
-            }
+                    </div>
+                `;
+            }).join('');
 
-            $('#searchResults').html(html);
+            $('#searchResults').html(`
+                <div class="search-results-header">
+                    <h2 class="section-title">Search Results for "${query}"</h2>
+                </div>
+                <div class="row">
+                    ${html}
+                </div>
+            `);
         }
 
         function viewProduct(id) {

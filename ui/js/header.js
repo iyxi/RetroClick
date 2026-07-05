@@ -39,8 +39,24 @@ const sharedHeaderMarkup = `
 `;
 
 const setHeaderState = () => {
-  const token = sessionStorage.getItem('token');
+  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+  const userRoleRaw = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+  let userRole = '';
+  try {
+    userRole = userRoleRaw ? JSON.parse(userRoleRaw) : '';
+  } catch (error) {
+    userRole = userRoleRaw || '';
+  }
   const $loginLink = $('#nav-login');
+  const $navbarNav = $('.navbar-nav.ml-auto');
+
+  let $profileLink = $('#nav-profile');
+  if (!$profileLink.length && $navbarNav.length) {
+    $profileLink = $(
+      '<li class="nav-item" id="nav-profile-item"><a class="nav-link" id="nav-profile" href="profile.html">Profile</a></li>'
+    );
+    $navbarNav.find('li').eq(3).after($profileLink);
+  }
 
   if (!$loginLink.length) return;
 
@@ -49,11 +65,27 @@ const setHeaderState = () => {
     $loginLink.off('click').on('click', function (e) {
       e.preventDefault();
       sessionStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
       window.location.href = 'login.html';
     });
+
+    if ($profileLink.length) {
+      if (String(userRole).toLowerCase() === 'customer' || !userRole) {
+        $profileLink.show();
+      } else {
+        $profileLink.hide();
+      }
+    }
   } else {
     $loginLink.text('Login').attr('href', 'login.html');
     $loginLink.off('click');
+    if ($profileLink.length) {
+      $profileLink.hide();
+    }
   }
 };
 

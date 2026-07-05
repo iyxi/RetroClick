@@ -427,60 +427,116 @@ $(document).ready(function() {
             success: function(data) {
                 // Destroy existing DataTable if it exists
                 if ($.fn.DataTable.isDataTable('#ordersTable')) {
-                    ordersDataTable.destroy();
+                    ordersDataTable.clear().destroy();
                 }
 
-                let html = '';
-                if (data.rows && data.rows.length > 0) {
-                    data.rows.forEach(order => {
-                        const date = new Date(order.created_at).toLocaleDateString();
-                        const statusBadge = order.status === 'completed' ? 'badge-success' : 
-                                          order.status === 'pending' ? 'badge-warning' :
-                                          order.status === 'processing' ? 'badge-info' : 'badge-danger';
-                        html += `<tr>
-                            <td>#${order.id}</td>
-                            <td>${order.User ? order.User.name : 'Unknown'}</td>
-                            <td>${date}</td>
-                            <td><span class="badge ${statusBadge}">${order.status}</span></td>
-                            <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info btn-action" onclick="editOrderStatus(${order.id}, '${order.status}')" title="Edit Status"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteOrder(${order.id})" title="Delete"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>`;
-                    });
-                } else {
-                    html = '<tr><td colspan="6" class="text-center">No orders found</td></tr>';
-                }
-                $('#ordersTable tbody').html(html);
-
-                // Initialize DataTable
+                const rows = data.rows || [];
                 ordersDataTable = $('#ordersTable').DataTable({
-                    "pageLength": 10,
-                    "order": [[0, 'desc']],
-                    "language": {
-                        "emptyTable": "No orders available"
-                    }
+                    data: rows,
+                    pageLength: 10,
+                    order: [[0, 'desc']],
+                    language: {
+                        emptyTable: 'No orders available'
+                    },
+                    columns: [
+                        {
+                            data: 'id',
+                            render: function(data) {
+                                return `#${data}`;
+                            }
+                        },
+                        {
+                            data: 'User',
+                            render: function(data) {
+                                return data && data.name ? data.name : 'Unknown';
+                            }
+                        },
+                        {
+                            data: 'created_at',
+                            render: function(data) {
+                                return data ? new Date(data).toLocaleDateString() : '';
+                            }
+                        },
+                        {
+                            data: 'status',
+                            render: function(data) {
+                                const normalizedStatus = String(data || '').toLowerCase();
+                                const statusBadge = normalizedStatus === 'completed' ? 'badge-success' :
+                                                  normalizedStatus === 'pending' ? 'badge-warning' :
+                                                  normalizedStatus === 'processing' ? 'badge-info' : 'badge-danger';
+                                return `<span class="badge ${statusBadge}">${data || ''}</span>`;
+                            }
+                        },
+                        {
+                            data: 'total',
+                            render: function(data) {
+                                return `₱${parseFloat(data || 0).toFixed(2)}`;
+                            }
+                        },
+                        {
+                            data: 'payment_method',
+                            render: function(data) {
+                                return data || 'COD';
+                            }
+                        },
+                        {
+                            data: null,
+                            orderable: false,
+                            searchable: false,
+                            render: function(data, type, row) {
+                                return `
+                                    <button class="btn btn-sm btn-info btn-action" onclick="editOrderStatus(${row.id}, '${row.status}')" title="Edit Status"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-danger btn-action" onclick="deleteOrder(${row.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                                `;
+                            }
+                        }
+                    ]
                 });
             },
             error: function(error) {
                 console.error('Load orders error:', error);
-                $('#ordersTable tbody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load orders</td></tr>');
+                if ($.fn.DataTable.isDataTable('#ordersTable')) {
+                    ordersDataTable.clear().destroy();
+                }
+                $('#ordersTable tbody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load orders</td></tr>');
             }
         });
     };
 
     window.editOrderStatus = function(id, currentStatus) {
+        const currentValue = String(currentStatus || '').toLowerCase();
+        const currentStatusLabel = {
+            pending: 'Pending',
+            processing: 'Processing',
+            completed: 'Completed'
+        }[currentValue] || 'Pending';
+        let selectedStatus = currentStatusLabel;
         Swal.fire({
             title: 'Update Order Status',
-            input: 'select',
-            inputOptions: {
-                'pending': 'Pending',
-                'processing': 'Processing',
-                'completed': 'Completed',
-                'cancelled': 'Cancelled'
+            html: `
+                <div class="order-status-picker">
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Pending' ? 'is-active' : ''}" data-status="Pending">Pending</button>
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Processing' ? 'is-active' : ''}" data-status="Processing">Processing</button>
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Completed' ? 'is-active' : ''}" data-status="Completed">Completed</button>
+                </div>
+            `,
+            width: 360,
+            customClass: {
+                popup: 'order-status-swal'
             },
-            inputValue: currentStatus,
+            didOpen: () => {
+                const popup = Swal.getPopup();
+                popup.querySelectorAll('.order-status-option').forEach(button => {
+                    button.addEventListener('click', () => {
+                        selectedStatus = button.getAttribute('data-status') || 'Pending';
+                        popup.querySelectorAll('.order-status-option').forEach(option => option.classList.remove('is-active'));
+                        button.classList.add('is-active');
+                    });
+                });
+            },
+            preConfirm: () => selectedStatus,
+            showConfirmButton: true,
+            showDenyButton: false,
             showCancelButton: true,
             confirmButtonText: 'Update',
             allowOutsideClick: false

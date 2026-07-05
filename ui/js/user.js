@@ -15,6 +15,51 @@ $(document).ready(function () {
         }
     }
 
+    const persistAuthState = (key, value) => {
+        sessionStorage.setItem(key, JSON.stringify(value));
+        localStorage.setItem(key, JSON.stringify(value));
+    };
+
+    const getStoredToken = () => {
+        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        if (!rawToken) return null;
+        try {
+            return JSON.parse(rawToken);
+        } catch (error) {
+            return rawToken;
+        }
+    };
+
+    const getStoredUserRole = () => {
+        const rawRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+        if (!rawRole) return '';
+        try {
+            return JSON.parse(rawRole);
+        } catch (error) {
+            return rawRole;
+        }
+    };
+
+    const getStoredUserEmail = () => {
+        const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+        if (!rawEmail) return '';
+        try {
+            return JSON.parse(rawEmail);
+        } catch (error) {
+            return rawEmail;
+        }
+    };
+
+    const getStoredUserName = () => {
+        const rawName = sessionStorage.getItem('userName') || localStorage.getItem('userName');
+        if (!rawName) return '';
+        try {
+            return JSON.parse(rawName);
+        } catch (error) {
+            return rawName;
+        }
+    };
+
     $("#register").on('click', function (e) {
         e.preventDefault();
         let name = $("#name").val()
@@ -115,10 +160,11 @@ $(document).ready(function () {
 
                 });
                 // sessionStorage.setItem('token', JSON.stringify(data.access_token))
-                sessionStorage.setItem('token', JSON.stringify(data.token))
-                sessionStorage.setItem('userId', JSON.stringify(data.user.id))
-                sessionStorage.setItem('userRole', JSON.stringify(data.user.role))
-                sessionStorage.setItem('userName', JSON.stringify(data.user.name))
+                persistAuthState('token', data.token)
+                persistAuthState('userId', data.user.id)
+                persistAuthState('userRole', data.user.role)
+                persistAuthState('userName', data.user.name)
+                persistAuthState('userEmail', data.user.email)
 
                 // Redirect based on user role
                 if (data.user.role === 'admin' || data.user.role === 'manager') {
@@ -157,6 +203,25 @@ $(document).ready(function () {
             return;
         }
 
+        const newPassword = $('#newPassword').val().trim();
+        const confirmPassword = $('#confirmPassword').val().trim();
+        const currentPassword = $('#currentPassword').val().trim();
+
+        if (newPassword || confirmPassword || currentPassword) {
+            if (!currentPassword) {
+                Swal.fire({ icon: 'error', text: 'Current password is required to change your password' });
+                return;
+            }
+            if (!newPassword || !confirmPassword) {
+                Swal.fire({ icon: 'error', text: 'Please complete both new password fields' });
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                Swal.fire({ icon: 'error', text: 'New password and confirmation do not match' });
+                return;
+            }
+        }
+
         const data = $('#profileForm')[0];
 
         const formData = new FormData(data);
@@ -171,13 +236,25 @@ $(document).ready(function () {
             dataType: "json",
             success: function (data) {
                 console.log(data);
+                if (data.customer) {
+                    const fullName = `${data.customer.fname || ''} ${data.customer.lname || ''}`.trim();
+                    if (fullName) {
+                        persistAuthState('userName', fullName);
+                        $('#previewName').text(fullName);
+                    }
+                    if (data.customer.image_path) {
+                        $('#avatarPreview').attr('src', `${url}${String(data.customer.image_path).replace(/^\/+/, '')}`);
+                    }
+                }
                 Swal.fire({
                     icon: 'success',
                     text: 'Profile updated successfully',
                     showConfirmButton: false,
                     timer: 1500
                 }).then(() => {
-                    window.location.href = 'index.html';
+                    $('#currentPassword').val('');
+                    $('#newPassword').val('');
+                    $('#confirmPassword').val('');
                 });
             },
             error: function (error) {
@@ -247,11 +324,60 @@ $(document).ready(function () {
     });
 
     loadSharedHeader(function () {
-        // After header is loaded, check sessionStorage for userId
-        if (sessionStorage.getItem('token')) {
-            // No changes needed; logout link is already wired by shared header.
+        const token = getStoredToken();
+        const userRole = String(getStoredUserRole() || '').toLowerCase();
+
+        if (!token) {
+            window.location.href = 'login.html';
             return;
         }
-        window.location.href = 'login.html';
+
+        if (userRole && userRole !== 'customer') {
+            window.location.href = 'admin.html';
+            return;
+        }
+
+        const storedName = getStoredUserName();
+        const storedEmail = getStoredUserEmail();
+        if (storedName) $('#previewName').text(storedName);
+        if (storedEmail) $('#previewEmail').text(storedEmail);
+
+        $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/profile`,
+            headers: { Authorization: `Bearer ${token}` },
+            dataType: 'json',
+            success: function (data) {
+                const user = data.user || {};
+                const customer = data.customer || {};
+
+                $('#profileUserId').val(user.id || getStoredUserId() || '');
+                $('#previewName').text(`${customer.fname || user.name || ''} ${customer.lname || ''}`.trim() || user.name || 'Customer');
+                $('#previewEmail').text(user.email || storedEmail || '');
+
+                $('#firstName').val(customer.fname || '');
+                $('#lastName').val(customer.lname || '');
+                $('#address').val(customer.addressline || '');
+                $('#zipcode').val(customer.zipcode || '');
+                $('#phone').val(customer.phone || '');
+                if (customer.image_path) {
+                    $('#avatarPreview').attr('src', `${url}${String(customer.image_path).replace(/^\/+/, '')}`);
+                }
+
+                const summary = [
+                    customer.addressline ? `Address: ${customer.addressline}` : '',
+                    customer.zipcode ? `ZIP: ${customer.zipcode}` : '',
+                    customer.phone ? `Phone: ${customer.phone}` : ''
+                ].filter(Boolean).join('<br>');
+
+                $('#profileSummary').html(summary || 'No profile details saved yet.');
+            },
+            error: function (error) {
+                console.error('Load profile error:', error);
+                if (error.status === 401) {
+                    window.location.href = 'login.html';
+                }
+            }
+        });
     });
 })

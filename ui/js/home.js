@@ -57,6 +57,7 @@ $(document).ready(function () {
       const primaryImage = imagesList.length ? imagesList[0].image_path : null;
       const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
       const imagesAttrEscaped = encodeURIComponent(JSON.stringify(imagesList));
+      const cartButtonLabel = stockQty > 0 ? 'Add to Cart' : 'Out of Stock';
 
       return `
         <div class="col-12 col-md-6 col-lg-4 mb-4">
@@ -76,23 +77,13 @@ $(document).ready(function () {
               </div>
               <div class="product-price">₱ ${parseFloat(value.sell_price).toFixed(2)}</div>
               <div class="product-actions">
-                <button type="button" class="btn btn-outline-secondary btn-details show-details"
+                <button type="button" class="btn btn-primary btn-cart add-to-cart-card"
                   data-id="${value.item_id}"
                   data-description="${escapeHtml(value.description)}"
                   data-price="${value.sell_price}"
-                  data-images='${imagesAttrEscaped}'
                   data-stock="${stockQty}"
                   data-primary="${primaryImage || ''}">
-                  Details
-                </button>
-                <button type="button" class="btn btn-primary btn-details show-details"
-                  data-id="${value.item_id}"
-                  data-description="${escapeHtml(value.description)}"
-                  data-price="${value.sell_price}"
-                  data-images='${imagesAttrEscaped}'
-                  data-stock="${stockQty}"
-                  data-primary="${primaryImage || ''}">
-                  Add to Cart
+                  ${cartButtonLabel}
                 </button>
               </div>
             </div>
@@ -437,76 +428,6 @@ $(document).ready(function () {
             initializePagination();
             renderCurrentPage();
 
-            if ($('#productDetailsModal').length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="productDetailsModal" tabindex="-1" role="dialog" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
-                      <div class="modal-dialog modal-dialog-centered" role="document">
-                        <div class="modal-content">
-                          <div class="modal-header">
-                            <h5 class="modal-title" id="productDetailsModalLabel"></h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                              <span aria-hidden="true">&times;</span>
-                            </button>
-                          </div>
-                          <div class="modal-body text-center" id="productDetailsModalBody">
-                            <!-- Product details will be injected here -->
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    `);
-            }
-
-            $(document).off('click', '.show-details').on('click', '.show-details', function () {
-
-                const id = $(this).data('id');
-                const description = $(this).data('description');
-                const price = $(this).data('price');
-                const images = parseImagesDataAttr($(this));
-                const stock = $(this).data('stock');
-
-                const carouselId = `productCarousel-${id}`;
-                const carouselIndicators = images.map((image, index) => `
-                    <li data-target="#${carouselId}" data-slide-to="${index}" class="${index === 0 ? 'active' : ''}"></li>
-                `).join('');
-                const carouselItems = images.map((image, index) => `
-                    <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                        <img src="${url}${encodeURI(image.image_path)}" class="d-block w-100" alt="Product image ${index + 1}">
-                    </div>
-                `).join('');
-                const carouselHtml = images.length ? `
-                    <div id="${carouselId}" class="carousel slide mb-3" data-ride="carousel">
-                      <ol class="carousel-indicators">
-                        ${carouselIndicators}
-                      </ol>
-                      <div class="carousel-inner">
-                        ${carouselItems}
-                      </div>
-                      <a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="sr-only">Previous</span>
-                      </a>
-                      <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="sr-only">Next</span>
-                      </a>
-                    </div>
-                ` : `<img src="https://via.placeholder.com/400x250?text=No+Image" class="img-fluid mb-3" style="max-height:200px;">`;
-
-                $('#productDetailsModalLabel').text(description);
-                $('#productDetailsModalBody').html(`
-                        ${carouselHtml}
-                        <p id="price">Price: ₱<strong>${price}</strong></p>
-                        <p>Stock: ${stock}</p>
-                        <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
-                        <input type="hidden" id="detailsItemId" value="${id}">
-                        <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
-                    `);
-
-                // Show modal
-                $('#productDetailsModal').modal('show');
-            })
-
             // Card-level carousel prev/next handlers
             $(document).on('click', '.carousel-prev, .carousel-next', function (e) {
                 e.preventDefault();
@@ -531,20 +452,19 @@ $(document).ready(function () {
         }
     });
 
-    $(document).on('click', '#detailsAddToCart', function () {
+  const addToCartFromCard = function (button) {
         if (!requireLogin()) {
             return;
         }
 
-        const qty = parseInt($("#detailsQty").val());
-        const id = parseInt($("#detailsItemId").val());
-        const description = $("#productDetailsModalLabel").text();
-        const price = $("#productDetailsModalBody strong").text().replace(/[^\d.]/g, '');
-        const image = $("#productDetailsModalBody img").attr('src');
-        const stock = parseInt($("#productDetailsModalBody p:contains('Stock')").text().replace(/[^\d]/g, ''));
+    const id = parseInt(button.data('id'), 10);
+    const description = String(button.data('description') || '').trim();
+    const price = parseFloat(button.data('price')) || 0;
+    const stock = parseInt(button.data('stock'), 10) || 0;
+    const image = button.data('primary') ? `${url}${encodeURI(button.data('primary'))}` : 'https://via.placeholder.com/400x250?text=No+Image';
 
-        if (!qty || qty < 1 || qty > stock) {
-            Swal.fire('Invalid Quantity', `Choose between 1 and ${stock}.`, 'warning');
+    if (stock <= 0) {
+      Swal.fire('Out of Stock', 'This item is not available', 'warning');
             return;
         }
 
@@ -552,26 +472,27 @@ $(document).ready(function () {
 
         let existing = cart.find(item => item.item_id == id);
         if (existing) {
-            existing.quantity += qty;
+      existing.quantity += 1;
         } else {
             cart.push({
                 item_id: id,
                 description: description,
-                price: parseFloat(price),
+        price: price,
                 image: image,
                 stock: stock,
-                quantity: qty
+        quantity: 1
             });
         }
         saveCart(cart);
 
         itemCount++;
         $('#itemCount').text(itemCount).css('display', 'block');
-        $('#productDetailsModal').modal('hide')
         Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
-        // console.log(cart)
+  };
 
-    });
+  $(document).on('click', '.add-to-cart-card', function () {
+    addToCartFromCard($(this));
+  });
 
     loadSharedHeader();
 

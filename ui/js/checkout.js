@@ -1,13 +1,42 @@
 $(document).ready(function () {
     const url = 'http://localhost:3000/';
+    let shippingData = null;
+    let paymentMethod = 'COD';
+    let currentStep = 1;
 
     function getCart() {
         let cart = localStorage.getItem('cart');
         return cart ? JSON.parse(cart) : [];
     }
 
+    function getStoredToken() {
+        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        if (!rawToken) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(rawToken);
+        } catch (error) {
+            return rawToken;
+        }
+    }
+
+    function getStoredUserEmail() {
+        const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+        if (!rawEmail) {
+            return '';
+        }
+
+        try {
+            return JSON.parse(rawEmail);
+        } catch (error) {
+            return rawEmail;
+        }
+    }
+
     function getToken() {
-        const token = sessionStorage.getItem('token');
+        const token = getStoredToken();
         if (!token) {
             Swal.fire({
                 icon: 'warning',
@@ -18,8 +47,118 @@ $(document).ready(function () {
             });
             return null;
         }
-        return JSON.parse(token);
+        return token;
     }
+
+    const storedEmail = getStoredUserEmail();
+    if (storedEmail && !$('#checkoutEmail').val().trim()) {
+        $('#checkoutEmail').val(storedEmail);
+    }
+
+    const getSelectedPaymentMethod = () => $('input[name="paymentMethod"]:checked').val() || 'COD';
+
+    const formatMoney = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+
+    const getSelectedItems = () => getCart().filter(item => item.selected);
+
+    const buildReceiptHtml = ({ receiptOrderId, selectedItems, shipping, paymentMethod: chosenPaymentMethod, total, subtotal, discount, shippingFee }) => {
+        const itemsHtml = selectedItems.map(item => `
+            <li>
+                <span>${item.description} x${item.quantity}</span>
+                <strong>${formatMoney(item.price * item.quantity)}</strong>
+            </li>
+        `).join('');
+
+        return `
+            <div class="text-left">
+                <div class="receipt-section">
+                    <h4>Receipt #${receiptOrderId}</h4>
+                    <ul class="receipt-list">${itemsHtml}</ul>
+                </div>
+                <div class="receipt-section">
+                    <h4>Shipping</h4>
+                    <ul class="receipt-list">
+                        <li><span>Name</span><strong>${shipping.fullname}</strong></li>
+                        <li><span>Email</span><strong>${shipping.email}</strong></li>
+                        <li><span>Address</span><strong>${shipping.address1}${shipping.address2 ? ', ' + shipping.address2 : ''}, ${shipping.city}, ${shipping.province}, ${shipping.zip}</strong></li>
+                        <li><span>Country</span><strong>${shipping.country}</strong></li>
+                    </ul>
+                </div>
+                <div class="receipt-section">
+                    <h4>Payment</h4>
+                    <ul class="receipt-list">
+                        <li><span>Method</span><strong>${chosenPaymentMethod}</strong></li>
+                        <li><span>Subtotal</span><strong>${formatMoney(subtotal)}</strong></li>
+                        <li><span>Shipping</span><strong>${formatMoney(shippingFee)}</strong></li>
+                        ${discount > 0 ? `<li><span>Discount</span><strong>${formatMoney(discount * -1)}</strong></li>` : ''}
+                        <li><span>Total</span><strong>${formatMoney(total)}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    };
+
+    const updateStepUI = () => {
+        $('#checkoutStepShipping').toggleClass('is-active', currentStep === 1);
+        $('#checkoutStepPayment').toggleClass('is-active', currentStep === 2);
+        $('#checkoutStepReview').toggleClass('is-active', currentStep === 3);
+
+        $('.checkout-steps .checkout-step').removeClass('is-current is-complete');
+        $('.checkout-steps .checkout-step').each(function (index) {
+            const stepNumber = index + 1;
+            if (stepNumber === currentStep) {
+                $(this).addClass('is-current');
+            } else if (stepNumber < currentStep) {
+                $(this).addClass('is-complete');
+            }
+        });
+
+        if (currentStep === 3) {
+            renderReviewReceipt();
+        }
+    };
+
+    const setStep = (step) => {
+        currentStep = step;
+        updateStepUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const renderReviewReceipt = () => {
+        const selectedItems = getSelectedItems();
+        const orderData = renderOrderSummary();
+        paymentMethod = getSelectedPaymentMethod();
+
+        const receiptHtml = `
+            <div class="receipt-section">
+                <h4>Items</h4>
+                <ul class="receipt-list">
+                    ${selectedItems.map(item => `<li><span>${item.description} x${item.quantity}</span><strong>${formatMoney(item.price * item.quantity)}</strong></li>`).join('')}
+                </ul>
+            </div>
+            <div class="receipt-section">
+                <h4>Shipping</h4>
+                <ul class="receipt-list">
+                    <li><span>Name</span><strong>${shippingData?.fullname || ''}</strong></li>
+                    <li><span>Email</span><strong>${shippingData?.email || ''}</strong></li>
+                    <li><span>Address</span><strong>${[shippingData?.address1, shippingData?.address2].filter(Boolean).join(', ')}</strong></li>
+                    <li><span>City</span><strong>${[shippingData?.city, shippingData?.province, shippingData?.zip, shippingData?.country].filter(Boolean).join(', ')}</strong></li>
+                </ul>
+            </div>
+            <div class="receipt-section">
+                <h4>Payment</h4>
+                <ul class="receipt-list">
+                    <li><span>Method</span><strong>${paymentMethod}</strong></li>
+                    <li><span>Subtotal</span><strong>${formatMoney(orderData.subtotal)}</strong></li>
+                    <li><span>Shipping</span><strong>${formatMoney(orderData.shipping)}</strong></li>
+                    ${orderData.discount > 0 ? `<li><span>Discount</span><strong>${formatMoney(orderData.discount * -1)}</strong></li>` : ''}
+                    <li><span>Total</span><strong>${formatMoney(orderData.total)}</strong></li>
+                </ul>
+            </div>
+        `;
+
+        $('#reviewReceipt').html(receiptHtml);
+    };
 
     function renderOrderSummary() {
         const cart = getCart();
@@ -215,7 +354,7 @@ $(document).ready(function () {
         }
 
         // Store shipping info in session
-        const shippingData = {
+        shippingData = {
             email: email,
             fullname: fullname,
             address1: address1,
@@ -226,20 +365,29 @@ $(document).ready(function () {
             country: country
         };
         sessionStorage.setItem('checkoutData', JSON.stringify(shippingData));
-        
-        // Show success and proceed
-        Swal.fire({
-            icon: 'success',
-            title: 'Shipping Info Saved',
-            text: 'Proceeding to payment...',
-            timer: 1500,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        }).then(() => {
-            placeOrder(shippingData);
-        });
+
+        setStep(2);
+    });
+
+    $('#backToShippingBtn').on('click', function () {
+        setStep(1);
+    });
+
+    $('#continueReviewBtn').on('click', function () {
+        paymentMethod = getSelectedPaymentMethod();
+        if (!paymentMethod) {
+            Swal.fire('Payment Method Required', 'Please choose a payment method to continue.', 'warning');
+            return;
+        }
+        setStep(3);
+    });
+
+    $('#backToPaymentBtn').on('click', function () {
+        setStep(2);
+    });
+
+    $('#placeOrderBtn').on('click', function () {
+        placeOrder(shippingData);
     });
 
     // Email validation helper
@@ -311,8 +459,7 @@ $(document).ready(function () {
     });
 
     function placeOrder(shippingData) {
-        const cart = getCart();
-        const selectedItems = cart.filter(i => i.selected);
+        const selectedItems = getSelectedItems();
 
         if (selectedItems.length === 0) {
             Swal.fire('Cart Empty', 'Your cart is empty.', 'warning');
@@ -324,14 +471,16 @@ $(document).ready(function () {
 
         // Get order summary data
         const orderData = renderOrderSummary();
+        paymentMethod = getSelectedPaymentMethod();
 
         const payload = JSON.stringify({
-            items: selectedItems.map(item => ({
+            cart: selectedItems.map(item => ({
                 item_id: item.item_id,
                 quantity: item.quantity,
                 price: item.price
             })),
             shipping: shippingData,
+            payment_method: paymentMethod,
             subtotal: orderData.subtotal,
             shipping_fee: orderData.shipping,
             discount: orderData.discount,
@@ -350,7 +499,7 @@ $(document).ready(function () {
 
         $.ajax({
             type: "POST",
-            url: `${url}api/v1/create-order`,
+            url: `${url}api/v1/orders`,
             data: payload,
             dataType: "json",
             contentType: 'application/json; charset=utf-8',
@@ -358,14 +507,25 @@ $(document).ready(function () {
                 "Authorization": "Bearer " + token
             },
             success: function (data) {
+                const receiptOrderId = data.order?.orderinfo_id || data.order_id || 'N/A';
+                const receiptHtml = buildReceiptHtml({
+                    receiptOrderId,
+                    selectedItems,
+                    shipping: shippingData,
+                    paymentMethod,
+                    total: orderData.total,
+                    subtotal: orderData.subtotal,
+                    discount: orderData.discount,
+                    shippingFee: orderData.shipping
+                });
+
                 Swal.fire({
-                    icon: "success",
+                    icon: 'success',
                     title: 'Order Confirmed!',
-                    text: data.message || 'Your order has been placed successfully.',
-                    timer: 2500,
-                    showConfirmButton: false
+                    html: `<div style="text-align:left; max-height: 420px; overflow:auto;">${receiptHtml}</div>`,
+                    confirmButtonText: 'Back to Home',
+                    allowOutsideClick: false
                 }).then(() => {
-                    // Remove only selected items from cart
                     let updatedCart = getCart().filter(i => !i.selected);
                     localStorage.setItem('cart', JSON.stringify(updatedCart));
                     window.location.href = 'home.html';
@@ -388,7 +548,7 @@ $(document).ready(function () {
         renderOrderSummary();
         
         // Check if user is logged in
-        const token = sessionStorage.getItem('token');
+        const token = getStoredToken();
         if (!token) {
             Swal.fire({
                 icon: 'warning',
@@ -413,5 +573,7 @@ $(document).ready(function () {
                 window.location.href = 'cart.html';
             });
         }
+
+        updateStepUI();
     });
 });

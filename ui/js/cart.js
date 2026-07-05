@@ -9,6 +9,17 @@ $(document).ready(function () {
         localStorage.setItem('cart', JSON.stringify(cart));
     }
 
+    const getStoredToken = () => {
+        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        if (!rawToken) return null;
+
+        try {
+            return JSON.parse(rawToken);
+        } catch (error) {
+            return rawToken;
+        }
+    };
+
     function renderCart() {
         let cart = getCart();
         let html = '';
@@ -136,8 +147,7 @@ $(document).ready(function () {
     // }
 
     const getToken = () => {
-        const token = sessionStorage.getItem('token');
-        console.log(token)
+        const token = getStoredToken();
         if (!token) {
             Swal.fire({
                 icon: 'warning',
@@ -148,7 +158,7 @@ $(document).ready(function () {
             });
             return;
         }
-        return JSON.parse(token)
+        return token;
     }
 
     $('#cartTable').on('click', '.remove-item', function () {
