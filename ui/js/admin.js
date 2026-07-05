@@ -51,8 +51,9 @@ $(document).ready(function() {
         return { 'Authorization': `Bearer ${JSON.parse(token)}` };
     };
 
-    // Initialize DataTables
-    let productsDataTable, ordersDataTable, usersDataTable, stockDataTable;
+    // Initialize DataTables and sales charts
+    let productsDataTable, ordersDataTable, usersDataTable, stockDataTable, salesDataTable;
+    let salesMonthChart, salesBrandChart, salesTrendChart;
 
     // Product button delegation
     $('#productsTable').on('click', 'button.btn-edit', function(e) {
@@ -87,6 +88,8 @@ $(document).ready(function() {
             loadUsers();
         } else if (tabName === 'stock') {
             loadStock();
+        } else if (tabName === 'sales') {
+            loadSalesOverview();
         }
     });
 
@@ -179,8 +182,228 @@ $(document).ready(function() {
             loadUsers();
         } else if (tabName === 'stock') {
             loadStock();
+        } else if (tabName === 'sales') {
+            loadSalesOverview();
         }
     };
+
+    const destroySalesCharts = () => {
+        if (salesMonthChart) {
+            salesMonthChart.destroy();
+            salesMonthChart = null;
+        }
+        if (salesBrandChart) {
+            salesBrandChart.destroy();
+            salesBrandChart = null;
+        }
+        if (salesTrendChart) {
+            salesTrendChart.destroy();
+            salesTrendChart = null;
+        }
+    };
+
+    const buildChartColors = (count) => {
+        const palette = [
+            '#743014',
+            '#c9a24b',
+            '#84692b',
+            '#4c6b3f',
+            '#b35c2e',
+            '#a43f2d',
+            '#d6b36a',
+            '#6b4d28'
+        ];
+
+        return Array.from({ length: count }, (_, index) => palette[index % palette.length]);
+    };
+
+    const formatPeso = (value) => `₱${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const renderSalesTable = (rows) => {
+        if ($.fn.DataTable.isDataTable('#salesTable')) {
+            salesDataTable.clear().destroy();
+        }
+
+        let html = '';
+        if (rows.length) {
+            rows.forEach(row => {
+                const datePlaced = row.date_placed ? new Date(row.date_placed).toLocaleString() : '';
+                html += `<tr>
+                    <td>#${row.orderinfo_id}</td>
+                    <td>#${row.orderline_id}</td>
+                    <td>${row.item_id}</td>
+                    <td>${row.camera_brand || ''}</td>
+                    <td>${row.camera_model || ''}</td>
+                    <td>${row.quantity || 0}</td>
+                    <td>${formatPeso(row.unit_price)}</td>
+                    <td>${formatPeso(row.line_total)}</td>
+                    <td>${datePlaced}</td>
+                    <td>${row.status || ''}</td>
+                    <td>${row.payment_method || 'COD'}</td>
+                </tr>`;
+            });
+        } else {
+            html = '<tr><td colspan="11" class="text-center">No sales records found</td></tr>';
+        }
+
+        $('#salesTable tbody').html(html);
+
+        salesDataTable = $('#salesTable').DataTable({
+            pageLength: 10,
+            order: [[0, 'desc']],
+            language: {
+                emptyTable: 'No sales records available'
+            }
+        });
+    };
+
+    const loadSalesOverview = function() {
+        const salesOverviewUrl = `${url}api/v1/sales-overview`;
+
+        $('#salesTable tbody').html('<tr><td colspan="11" class="text-center">Loading sales data...</td></tr>');
+
+        $.ajax({
+            method: 'GET',
+            url: salesOverviewUrl,
+            headers: getAuthHeader(),
+            dataType: 'json',
+            success: function(data) {
+                const rows = data.rows || [];
+                const monthlyRows = data.monthlyRows || [];
+                const brandRows = data.brandRows || [];
+                const topModelRows = data.topModelRows || [];
+                const modelTrendRows = data.modelTrendRows || [];
+
+                destroySalesCharts();
+                renderSalesTable(rows);
+
+                const monthLabels = monthlyRows.map(row => row.month_label);
+                const monthValues = monthlyRows.map(row => Number(row.sold_total || 0));
+                const monthColors = buildChartColors(monthValues.length);
+
+                salesMonthChart = new Chart(document.getElementById('salesMonthChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthLabels,
+                        datasets: [{
+                            label: 'Units sold',
+                            data: monthValues,
+                            backgroundColor: monthColors,
+                            borderColor: '#743014',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const brandLabels = brandRows.map(row => row.camera_brand);
+                const brandValues = brandRows.map(row => Number(row.sold_total || 0));
+
+                salesBrandChart = new Chart(document.getElementById('salesBrandChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: brandLabels,
+                        datasets: [{
+                            label: 'Units sold by brand',
+                            data: brandValues,
+                            backgroundColor: buildChartColors(brandValues.length),
+                            borderColor: '#f3e7d0',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                const trendMonthIndex = monthlyRows.map(row => [row.month_key, row.month_label]);
+                const trendLabels = trendMonthIndex.map(([, monthLabel]) => monthLabel);
+                const trendMonthKeys = trendMonthIndex.map(([monthKey]) => monthKey);
+                const topModels = data.topModels && data.topModels.length ? data.topModels : topModelRows.map(row => row.camera_model);
+                const trendLookup = {};
+
+                modelTrendRows.forEach(row => {
+                    if (!trendLookup[row.camera_model]) {
+                        trendLookup[row.camera_model] = {};
+                    }
+                    trendLookup[row.camera_model][row.month_key] = Number(row.sold_total || 0);
+                });
+
+                const trendColors = buildChartColors(topModels.length);
+                const trendDatasets = topModels.map((model, index) => {
+                    const color = trendColors[index];
+                    return {
+                        label: model,
+                        data: trendMonthKeys.map(monthKey => {
+                            return trendLookup[model]?.[monthKey] || 0;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.35,
+                        fill: false,
+                        spanGaps: true
+                    };
+                });
+
+                salesTrendChart = new Chart(document.getElementById('salesTrendChart'), {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: trendDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            error: function(error) {
+                console.error('Load sales overview error:', error);
+                destroySalesCharts();
+                $('#salesTable tbody').html('<tr><td colspan="11" class="text-center text-danger">Failed to load sales overview</td></tr>');
+                Swal.fire('Error', error.responseJSON?.error || 'Failed to load sales overview', 'error');
+            }
+        });
+    };
+
+    $('#refreshSalesOverviewBtn').on('click', function() {
+        loadSalesOverview();
+    });
 
     // PRODUCT MANAGEMENT
     window.showAddProductForm = function() {

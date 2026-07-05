@@ -1290,6 +1290,7 @@ textarea:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -2742,8 +2743,8 @@ body.admin-os::before {
 }
 
 /* ============================================================
-   SALES TAB — design-only charts (no data logic)
-   ============================================================ */
+  SALES TAB — live charts and data table
+  ============================================================ */
 .sales-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -2779,149 +2780,27 @@ body.admin-os::before {
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 1.1rem;
-  opacity: .8;
-}
+  .chart-wrap {
+    position: relative;
+    min-height: 220px;
+  }
 
-/* -- flat bar chart, pure CSS, decorative only -- */
-.bar-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  height: 200px;
-  padding: 0 .25rem;
-  border-bottom: 2px solid var(--ink);
-}
+  .chart-wrap-wide {
+    min-height: 240px;
+  }
 
-.bar-chart .bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-}
+  .chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
 
-.bar-chart .bar-fill {
-  width: 100%;
-  max-width: 34px;
-  border: 1px solid var(--ink);
-  border-radius: 3px 3px 0 0;
-  background: var(--bordeaux);
-  box-shadow: 2px 0 0 rgba(63,29,16,0.18) inset;
-  transition: transform .2s var(--ease);
-}
+  .sales-table-wrap {
+    margin-top: 1rem;
+  }
 
-.bar-chart .bar:nth-child(2) .bar-fill { background: var(--rust); }
-.bar-chart .bar:nth-child(3) .bar-fill { background: var(--cedar); }
-.bar-chart .bar:nth-child(4) .bar-fill { background: var(--brass); }
-.bar-chart .bar:nth-child(5) .bar-fill { background: var(--ok-green); }
-.bar-chart .bar:nth-child(6) .bar-fill { background: var(--bordeaux); }
-
-.bar-chart .bar:hover .bar-fill {
-  transform: scaleY(1.04);
-  filter: brightness(1.08);
-}
-
-.bar-chart .bar-label {
-  margin-top: .5rem;
-  font-size: .7rem;
-  letter-spacing: .04em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
-/* -- donut ring, pure CSS conic-gradient, decorative only -- */
-.donut-wrap {
-  display: flex;
-  align-items: center;
-  gap: 1.4rem;
-  flex-wrap: wrap;
-}
-
-.donut {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: conic-gradient(
-    var(--bordeaux) 0deg 144deg,
-    var(--brass) 144deg 230deg,
-    var(--cedar) 230deg 300deg,
-    var(--ok-green) 300deg 360deg
-  );
-  border: 3px solid var(--ink);
-  position: relative;
-  box-shadow: 3px 3px 0 rgba(63,29,16,0.18);
-}
-
-.donut::after {
-  content: "";
-  position: absolute;
-  inset: 22px;
-  background: var(--cream-deep);
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-}
-
-.donut-legend {
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-  font-size: .85rem;
-}
-
-.donut-legend span.dot {
-  display: inline-block;
-  width: 11px;
-  height: 11px;
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  margin-right: .5rem;
-}
-
-.donut-legend li {
-  list-style: none;
-  display: flex;
-  align-items: center;
-}
-
-.donut-legend ul {
-  padding-left: 0;
-  margin: 0;
-}
-
-/* -- sparkline strip, pure CSS polyline via SVG, decorative only -- */
-.sparkline-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border-top: 1px dashed var(--line);
-  padding-top: .9rem;
-  margin-top: .9rem;
-}
-
-.sparkline-row:first-child {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
-}
-
-.sparkline-row .spark-label {
-  width: 130px;
-  flex-shrink: 0;
-  font-size: .82rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.sparkline-row svg {
-  flex: 1;
-  height: 36px;
-  overflow: visible;
-}
-
-.sparkline-row .spark-value {
+  #salesTable {
+    width: 100% !important;
+  }
   width: 70px;
   text-align: right;
   font-family: var(--font-display);
