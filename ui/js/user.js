@@ -132,17 +132,56 @@ $(document).ready(function () {
         });
     });
 
+    const defaultAvatarSrc = $('#avatarPreview').attr('src');
+    let initialProfileState = {
+        fname: '',
+        lname: '',
+        addressline: '',
+        zipcode: '',
+        phone: '',
+        image_path: null,
+        avatarRemoved: false
+    };
+
+    const profileHasChanged = (currentState) => {
+        if (currentState.fname !== initialProfileState.fname) return true;
+        if (currentState.lname !== initialProfileState.lname) return true;
+        if (currentState.addressline !== initialProfileState.addressline) return true;
+        if (currentState.zipcode !== initialProfileState.zipcode) return true;
+        if (currentState.phone !== initialProfileState.phone) return true;
+        if (currentState.avatarRemoved && initialProfileState.image_path) return true;
+        if (currentState.avatarFile) return true;
+        return false;
+    };
+
     $('#avatar').on('change', function () {
+        initialProfileState.avatarRemoved = false;
         const file = this.files[0];
-        // console.log(this.files[0])
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e) {
-                console.log(e.target.result)
                 $('#avatarPreview').attr('src', e.target.result);
             };
             reader.readAsDataURL(file);
+        } else {
+            $('#avatarPreview').attr('src', defaultAvatarSrc);
         }
+    });
+
+    $('#removeAvatarBtn').on('click', function () {
+        $('#avatar').val('');
+        $('#avatarPreview').attr('src', defaultAvatarSrc);
+        initialProfileState.avatarRemoved = true;
+    });
+
+    const getProfileCurrentState = () => ({
+        fname: $('#firstName').val().trim(),
+        lname: $('#lastName').val().trim(),
+        addressline: $('#address').val().trim(),
+        zipcode: $('#zipcode').val().trim(),
+        phone: $('#phone').val().trim(),
+        avatarFile: $('#avatar')[0]?.files?.length > 0,
+        avatarRemoved: initialProfileState.avatarRemoved
     });
 
     $("#login").on('click', function (e) {
@@ -240,11 +279,24 @@ $(document).ready(function () {
 
 
 
+        const currentState = getProfileCurrentState();
+        if (!profileHasChanged(currentState)) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Nothing to update',
+                text: 'If you want to change your profile, please modify at least one field before saving.',
+                confirmButtonText: 'Understood'
+            });
+            return;
+        }
+
         const newPassword = $('#newPassword').val().trim();
         const confirmPassword = $('#confirmPassword').val().trim();
         const currentPassword = $('#currentPassword').val().trim();
 
-        if (newPassword || confirmPassword || currentPassword) {
+        const wantsPasswordChange = newPassword || confirmPassword;
+
+        if (wantsPasswordChange) {
             if (!currentPassword) {
                 Swal.fire({ icon: 'error', text: 'Current password is required to change your password' });
                 return;
@@ -284,7 +336,8 @@ $(document).ready(function () {
                         $('#previewName').text(fullName);
                     }
                     if (data.customer.image_path) {
-                        $('#avatarPreview').attr('src', `${url}${String(data.customer.image_path).replace(/^\/+/, '')}`);
+                        const normalizedPath = String(data.customer.image_path).replace(/\\/g, '/').replace(/^\/+/, '');
+                        $('#avatarPreview').attr('src', `${url}${normalizedPath}`);
                     }
                 }
                 Swal.fire({
@@ -394,8 +447,19 @@ $(document).ready(function () {
                 $('#zipcode').val(customer.zipcode || '');
                 $('#phone').val(customer.phone || '');
                 if (customer.image_path) {
-                    $('#avatarPreview').attr('src', `${url}${String(customer.image_path).replace(/^\/+/, '')}`);
+                    const normalizedPath = String(customer.image_path).replace(/\\/g, '/').replace(/^\/+/, '');
+                    $('#avatarPreview').attr('src', `${url}${normalizedPath}`);
                 }
+
+                initialProfileState = {
+                    fname: customer.fname || '',
+                    lname: customer.lname || '',
+                    addressline: customer.addressline || '',
+                    zipcode: customer.zipcode || '',
+                    phone: customer.phone || '',
+                    image_path: customer.image_path || null,
+                    avatarRemoved: false
+                };
 
                 const summary = [
                     customer.addressline ? `Address: ${customer.addressline}` : '',

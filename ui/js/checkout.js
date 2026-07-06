@@ -78,7 +78,7 @@ $(document).ready(function () {
 
     const getSelectedItems = () => getCart().filter(item => item.selected);
 
-    const buildReceiptHtml = ({ receiptOrderId, selectedItems, shipping, paymentMethod: chosenPaymentMethod, total, subtotal, discount, shippingFee, datePlaced, previewMode = false }) => {
+    const buildReceiptHtml = ({ receiptOrderId, selectedItems, shipping, paymentMethod: chosenPaymentMethod, total, subtotal, discount, shippingFee, datePlaced, status = 'Pending', previewMode = false }) => {
         const itemsHtml = selectedItems.map(item => {
             const itemName = escapeHtml(item.description || item.name || `Item #${item.item_id || ''}`);
             const qty = Number(item.quantity || 0);
@@ -101,9 +101,22 @@ $(document).ready(function () {
             .map(escapeHtml)
             .join(', ');
         const shownDate = formatReceiptDate(datePlaced || new Date());
+        const normalizedStatus = String(status || 'Pending').toLowerCase();
+        const statusLabel = normalizedStatus === 'completed' ? 'COMPLETED' : normalizedStatus === 'processing' ? 'PROCESSING' : normalizedStatus === 'cancelled' ? 'CANCELLED' : 'PENDING';
+        const statusMessage = normalizedStatus === 'completed'
+            ? 'Your order is complete. Thank you and order again soon.'
+            : normalizedStatus === 'processing'
+                ? 'Your order is now processing. Please wait for delivery.'
+                : normalizedStatus === 'cancelled'
+                    ? 'Your order has been cancelled. If you need help, contact support.'
+                    : 'Your order is pending and will be processed shortly.';
 
         return `
             <div class="vintage-receipt">
+                <div class="receipt-status-banner">
+                    <div class="receipt-status-pill status-${normalizedStatus}">${statusLabel}</div>
+                    <div class="receipt-status-copy">${statusMessage}</div>
+                </div>
                 <div class="receipt-topline">
                     <span>RECEIPT</span>
                     <span>No. ${orderNo}</span>
@@ -504,7 +517,9 @@ $(document).ready(function () {
             cart: selectedItems.map(item => ({
                 item_id: item.item_id,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                name: item.name || item.description || '',
+                description: item.description || item.name || ''
             })),
             shipping: shippingData,
             payment_method: paymentMethod,
@@ -545,6 +560,7 @@ $(document).ready(function () {
                     discount: orderData.discount,
                     shippingFee: orderData.shipping,
                     datePlaced: data.order?.date_placed || new Date(),
+                    status: 'Pending',
                     previewMode: false
                 });
 

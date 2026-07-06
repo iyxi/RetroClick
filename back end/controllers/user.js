@@ -3,6 +3,7 @@ const User = db.User;
 const Customer = db.Customer;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 
 const registerUser = async (req, res) => {
     try {
@@ -104,24 +105,49 @@ const updateUser = async (req, res) => {
     try {
         const { fname, lname, addressline, zipcode, phone, userId, currentPassword, newPassword } = req.body;
 
-        // Validate required fields
-        if (!userId) {
+        // Determine the authenticated user ID when possible
+        const authUserId = Number(req.user?.id);
+        const requestedUserId = userId ? Number(userId) : null;
+        const userIdInt = Number.isInteger(authUserId) ? authUserId : (Number.isInteger(requestedUserId) ? requestedUserId : null);
+
+        if (!userIdInt) {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        // Convert userId to integer
-        const userIdInt = parseInt(userId, 10);
-        if (isNaN(userIdInt)) {
-            return res.status(400).json({ error: 'Invalid User ID' });
+        if (Number.isInteger(requestedUserId) && Number.isInteger(authUserId) && requestedUserId !== authUserId) {
+            return res.status(403).json({ error: 'User ID mismatch' });
         }
 
         let imagePath = null;
-        const uploadedFiles = Array.isArray(req.files) ? req.files : [];
-        if (uploadedFiles.length) {
-            imagePath = uploadedFiles[0].path.replace(/\\/g, "/");
-        } else if (req.file) {
-            imagePath = req.file.path.replace(/\\/g, "/");
+        if (req.file) {
+            const filePath = req.file.path || (req.file.destination && req.file.filename && path.join(req.file.destination, req.file.filename));
+            if (filePath) {
+                const normalized = filePath.replace(/\\/g, '/');
+                const imageIndex = normalized.toLowerCase().indexOf('/images/');
+                if (imageIndex >= 0) {
+                    imagePath = normalized.slice(imageIndex + 1);
+                } else if (normalized.toLowerCase().startsWith('images/')) {
+                    imagePath = normalized;
+                } else {
+                    imagePath = normalized;
+                }
+            }
         }
+
+        console.log('Profile update:', {
+            userIdInt,
+            body: {
+                fname,
+                lname,
+                addressline,
+                zipcode,
+                phone,
+                currentPassword: !!currentPassword,
+                newPassword: !!newPassword
+            },
+            file: req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size, path: req.file.path } : null,
+            imagePath
+        });
 
         const user = await User.findOne({ where: { id: userIdInt } });
         if (!user) {
@@ -156,7 +182,7 @@ const updateUser = async (req, res) => {
         // Update if already exists
         if (!created) {
             const updateObj = {
-                image_path: imagePath || customer.image_path
+                image_path: imagePath !== null ? imagePath : customer.image_path
             };
             if (fname !== undefined) updateObj.fname = fname;
             if (lname !== undefined) updateObj.lname = lname;
@@ -177,7 +203,12 @@ const updateUser = async (req, res) => {
             customer
         });
     } catch (error) {
-        console.log(error);
+        console.error('Profile update exception:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body,
+            files: Array.isArray(req.files) ? req.files.map(f => ({ originalname: f.originalname, mimetype: f.mimetype, size: f.size })) : undefined
+        });
         return res.status(500).json({ error: 'Error updating profile', details: error.message });
     }
 };

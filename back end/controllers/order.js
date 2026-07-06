@@ -45,16 +45,29 @@ const buildReceiptItems = (items) => items.map((item, index) => {
     };
 });
 
-const buildReceiptEmailHtml = ({ orderId, customerName, addressText, shippingEmail, items, shippingFee, total, paymentMethod, placedAt }) => {
+const buildReceiptEmailHtml = ({ orderId, customerName, addressText, shippingEmail, items, shippingFee, total, paymentMethod, placedAt, status = 'Pending' }) => {
     const normalizedItems = buildReceiptItems(items);
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
     const dateText = formatReceiptDateTime(placedAt);
+    const normalizedStatus = String(status || 'Pending').toLowerCase();
+    const statusLabel = normalizedStatus === 'completed' ? 'Completed' : normalizedStatus === 'processing' ? 'Processing' : normalizedStatus === 'cancelled' ? 'Cancelled' : 'Pending';
+    const statusMessage = normalizedStatus === 'completed'
+        ? 'Your order is complete. Thank you and order again soon.'
+        : normalizedStatus === 'processing'
+            ? 'Your order is now processing. Please wait for delivery.'
+            : normalizedStatus === 'cancelled'
+                ? 'Your order has been cancelled. If you need help, contact support.'
+                : 'Your order is pending and will be processed shortly.';
 
     return `
         <div style="max-width:560px;margin:0 auto;padding:18px 16px 20px;background:#f3ead7;border:1px solid rgba(92,63,38,.25);border-radius:12px;box-shadow:0 12px 28px rgba(64,35,22,.15);font-family:Arial,Helvetica,sans-serif;color:#3c2a21;">
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.08em;font-weight:800;color:#972f2f;text-transform:uppercase;">
                 <span>Receipt</span>
                 <span>No. ${escapeHtml(formatReceiptOrderNo(orderId))}</span>
+            </div>
+            <div style="margin-top:8px;padding:12px;border:1px solid rgba(151,47,47,0.18);border-radius:10px;background:rgba(255,255,255,0.95);font-size:12px;color:#4b2f25;">
+                <strong>Status:</strong> ${escapeHtml(statusLabel)}<br>
+                ${escapeHtml(statusMessage)}
             </div>
             <div style="text-align:center;margin-top:10px;">
                 <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:32px;line-height:1;color:#a3232f;">RetroClick</div>
@@ -89,10 +102,19 @@ const buildReceiptEmailHtml = ({ orderId, customerName, addressText, shippingEma
     `;
 };
 
-const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total, paymentMethod, placedAt }) => {
+const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total, paymentMethod, placedAt, status = 'Pending' }) => {
     const normalizedItems = buildReceiptItems(items);
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
     const receiptWidth = 44;
+    const normalizedStatus = String(status || 'Pending').toLowerCase();
+    const statusLabel = normalizedStatus === 'completed' ? 'Completed' : normalizedStatus === 'processing' ? 'Processing' : normalizedStatus === 'cancelled' ? 'Cancelled' : 'Pending';
+    const statusMessage = normalizedStatus === 'completed'
+        ? 'Thank you and order again soon.'
+        : normalizedStatus === 'processing'
+            ? 'Your order is now processing.'
+            : normalizedStatus === 'cancelled'
+                ? 'Your order has been cancelled.'
+                : 'Your order is pending and will be processed shortly.';
     const centerLine = (text) => {
         const value = String(text || '');
         if (value.length >= receiptWidth) return value;
@@ -105,6 +127,9 @@ const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, t
         centerLine(`No. ${formatReceiptOrderNo(orderId)}`),
         centerLine('RetroClick'),
         centerLine('Vintage Camera Marketplace'),
+        rule,
+        `STATUS: ${statusLabel}`,
+        `${statusMessage}`,
         rule,
         `DATE: ${formatReceiptDateTime(placedAt)}`,
         `CUSTOMER: ${customerName}`,
@@ -402,13 +427,14 @@ exports.createOrder = async (req, res) => {
                 shippingFee: Number(shippingFee || 0),
                 total,
                 paymentMethod,
-                placedAt: order.date_placed || new Date()
+                placedAt: order.date_placed || new Date(),
+                status: order.status
             });
             await sendOrderEmail({
                 orderId: order.orderinfo_id,
                 recipientEmail: userRecord.email,
                 recipientName: fullName,
-                subject: 'Order Confirmation - RetroClick',
+                subject: `Order ${order.status} - RetroClick`,
                 html,
                 attachments: [{
                     filename: `receipt-${order.orderinfo_id}.pdf`,
@@ -467,34 +493,95 @@ exports.updateOrder = async (req, res) => {
         const previousStatus = order.status;
         await Order.update(updateData, { where: { orderinfo_id: id } });
 
-        if (status !== undefined && updateData.status && ['Processing', 'Completed'].includes(updateData.status) && previousStatus !== updateData.status) {
-            const customer = await Customer.findOne({ where: { customer_id: order.customer_id } });
-            const linkedUser = customer?.user_id ? await User.findOne({
-                where: { id: customer.user_id },
-                attributes: ['id', 'name', 'email'],
-                raw: true
-            }) : null;
+        const updatedOrder = await Order.findOne({
+            where: { orderinfo_id: id },
+            include: [
+                {
+                    model: OrderLine,
+                    include: [{ model: Item, attributes: ['item_id', 'description', 'sell_price'] }]
+                },
+                {
+                    model: Customer,
+                    include: [{ model: User, attributes: ['id', 'name', 'email'] }]
+                }
+            ]
+        });
+
+        if (status !== undefined && updateData.status && ['Processing', 'Completed', 'Cancelled'].includes(updateData.status) && previousStatus !== updateData.status) {
+            const orderCustomer = updatedOrder.Customer;
+            const linkedUser = orderCustomer?.User || null;
+            const fullName = orderCustomer ? [orderCustomer.fname, orderCustomer.lname].filter(Boolean).join(' ').trim() : linkedUser?.name || 'Customer';
+            const deliveryAddress = [orderCustomer?.addressline, orderCustomer?.zipcode].filter(Boolean).join(', ') || 'Address to be confirmed';
+            const orderItems = (updatedOrder.OrderLines || []).map((orderLine) => ({
+                name: orderLine.Item?.description || `Item #${orderLine.item_id}`,
+                quantity: Number(orderLine.quantity || 0),
+                price: Number(orderLine.unit_price || 0),
+                total: Number(orderLine.unit_price || 0) * Number(orderLine.quantity || 0)
+            }));
+            const shippingFee = Number(updatedOrder.shipping || 0);
+            const totalAmount = Number(updatedOrder.total || 0);
+            const paymentMethod = updatedOrder.payment_method || 'COD';
+
+            const existingReceipt = await db.Receipt.findOne({ where: { orderinfo_id: id } });
+            const receiptNo = `RCT-${formatReceiptOrderNo(id)}`;
+
+            if (!existingReceipt) {
+                await db.Receipt.create({
+                    orderinfo_id: id,
+                    payment_id: null,
+                    receipt_no: receiptNo,
+                    receipt_pdf_path: null,
+                    issued_at: new Date()
+                });
+            }
+
+            const receiptPdf = buildReceiptPdf({
+                orderId: id,
+                customerName: fullName,
+                address: deliveryAddress,
+                items: orderItems,
+                shippingFee,
+                total: totalAmount,
+                paymentMethod,
+                placedAt: updatedOrder.date_placed || new Date(),
+                status: updateData.status
+            });
+
+            const emailHtml = buildReceiptEmailHtml({
+                orderId: id,
+                customerName: fullName,
+                addressText: deliveryAddress,
+                shippingEmail: linkedUser?.email || '',
+                items: orderItems,
+                shippingFee,
+                total: totalAmount,
+                paymentMethod,
+                placedAt: updatedOrder.date_placed || new Date(),
+                status: updateData.status
+            });
 
             if (linkedUser?.email) {
-                const html = `
-                    <h2>Order Update</h2>
-                    <p>Hi ${linkedUser.name || 'Customer'},</p>
-                    <p>Your order #${order.orderinfo_id} is now <strong>${updateData.status}</strong>.</p>
-                    <p>Thank you for shopping with RetroClick.</p>
-                `;
                 await sendOrderEmail({
-                    orderId: order.orderinfo_id,
+                    orderId: id,
                     recipientEmail: linkedUser.email,
-                    recipientName: linkedUser.name || 'Customer',
+                    recipientName: linkedUser.name || fullName,
                     subject: `Order ${updateData.status} - RetroClick`,
-                    html
+                    html: emailHtml,
+                    attachments: [
+                        {
+                            filename: `receipt-${id}.pdf`,
+                            content: receiptPdf,
+                            contentType: 'application/pdf'
+                        }
+                    ]
                 });
             }
         }
 
         return res.status(200).json({
             success: true,
-            message: 'Order updated successfully'
+            message: 'Order updated successfully',
+            order: updatedOrder
         });
     } catch (error) {
         console.log(error);

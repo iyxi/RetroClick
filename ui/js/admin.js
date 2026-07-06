@@ -71,6 +71,110 @@ $(document).ready(function() {
         return message;
     };
 
+    const formatMoney = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatReceiptDate = (inputDate = new Date()) => {
+        const date = new Date(inputDate);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
+    };
+
+    const buildAdminReceiptHtml = (order, status) => {
+        const orderId = order.id || order.orderinfo_id || 'N/A';
+        const orderNo = String(orderId).padStart(6, '0');
+        const datePlaced = order.created_at || order.date_placed || new Date();
+        const customer = order.Customer || {};
+        const user = customer.User || order.User || {};
+        const customerName = escapeHtml(user.name || [customer.fname, customer.lname].filter(Boolean).join(' ') || 'Customer');
+        const customerEmail = escapeHtml(user.email || '');
+        const customerAddress = escapeHtml([customer.addressline, customer.zipcode].filter(Boolean).join(', ') || 'Address to be confirmed');
+        const items = Array.isArray(order.OrderLines) ? order.OrderLines : [];
+        const itemsHtml = items.map((item) => {
+            const itemName = escapeHtml(item.Item?.description || item.name || `Item #${item.item_id || ''}`);
+            const quantity = Number(item.quantity || 0);
+            const unitPrice = Number(item.unit_price || 0);
+            const lineTotal = quantity * unitPrice;
+            return `
+                <li>
+                    <div class="receipt-item-name">${itemName}</div>
+                    <div class="receipt-item-meta">${quantity} x ${formatMoney(unitPrice)}</div>
+                    <div class="receipt-item-total">${formatMoney(lineTotal)}</div>
+                </li>
+            `;
+        }).join('');
+
+        const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0), 0);
+        const shippingFee = Number(order.shipping || 0);
+        const total = Number(order.total || 0);
+        const paymentMethod = escapeHtml(order.payment_method || 'COD');
+        const noteMessage = status === 'Completed'
+            ? 'Thank you for your order. Order again at RetroClick anytime.'
+            : 'Your order is being processed. A receipt has been generated.';
+        const statusClass = `status-${String(status || '').toLowerCase()}`;
+        const statusLabel = status ? String(status).toUpperCase() : 'PENDING';
+
+        return `
+            <div class="vintage-receipt">
+                <div class="receipt-status-banner">
+                    <div class="receipt-status-pill ${statusClass}">${statusLabel}</div>
+                    <div class="receipt-status-copy">${status === 'Completed' ? 'This order has been completed.' : 'This order is currently being processed.'}</div>
+                </div>
+                <div class="receipt-topline">
+                    <span>RECEIPT</span>
+                    <span>No. ${orderNo}</span>
+                </div>
+                <h3 class="receipt-brand">RetroClick</h3>
+                <p class="receipt-tagline">Vintage camera marketplace</p>
+
+                <div class="receipt-divider"></div>
+
+                <div class="receipt-meta-row"><span>DATE:</span><span>${formatReceiptDate(datePlaced)}</span></div>
+                <div class="receipt-meta-row"><span>CUSTOMER:</span><span>${customerName}</span></div>
+                <div class="receipt-meta-row"><span>PAYMENT:</span><span>${paymentMethod}</span></div>
+                <div class="receipt-meta-row"><span>EMAIL:</span><span>${customerEmail}</span></div>
+                <div class="receipt-address">${customerAddress}</div>
+
+                <div class="receipt-divider"></div>
+
+                <ul class="receipt-items-list">
+                    ${itemsHtml || '<li><div class="receipt-item-name">No items</div><div class="receipt-item-total">-</div></li>'}
+                </ul>
+
+                <div class="receipt-divider"></div>
+                <div class="receipt-amount-row"><span>SUBTOTAL</span><span>${formatMoney(subtotal)}</span></div>
+                <div class="receipt-amount-row"><span>SHIPPING</span><span>${formatMoney(shippingFee)}</span></div>
+                <div class="receipt-total-row"><span>TOTAL:</span><span>${formatMoney(total)}</span></div>
+                <p class="receipt-thanks">${noteMessage}</p>
+                ${status === 'Completed' ? '<p class="receipt-order-again"><a href="home.html">Order Again</a></p>' : ''}
+            </div>
+        `;
+    };
+
+    const showOrderReceiptPopup = (order, status) => {
+        const receiptHtml = buildAdminReceiptHtml(order, status);
+        Swal.fire({
+            title: `Order ${status}`,
+            html: `<div class="swal-receipt-wrap">${receiptHtml}</div>`,
+            width: 760,
+            customClass: {
+                popup: 'receipt-swal-popup'
+            },
+            confirmButtonText: 'Close',
+            allowOutsideClick: false
+        });
+    };
+
     // Initialize DataTables and sales charts
     let productsDataTable, ordersDataTable, usersDataTable, stockDataTable, salesDataTable;
     let salesMonthChart, salesBrandChart, salesTrendChart;
@@ -752,7 +856,8 @@ $(document).ready(function() {
         const currentStatusLabel = {
             pending: 'Pending',
             processing: 'Processing',
-            completed: 'Completed'
+            completed: 'Completed',
+            cancelled: 'Cancelled'
         }[currentValue] || 'Pending';
         let selectedStatus = currentStatusLabel;
         Swal.fire({
@@ -762,6 +867,7 @@ $(document).ready(function() {
                     <button type="button" class="order-status-option ${currentStatusLabel === 'Pending' ? 'is-active' : ''}" data-status="Pending">Pending</button>
                     <button type="button" class="order-status-option ${currentStatusLabel === 'Processing' ? 'is-active' : ''}" data-status="Processing">Processing</button>
                     <button type="button" class="order-status-option ${currentStatusLabel === 'Completed' ? 'is-active' : ''}" data-status="Completed">Completed</button>
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Cancelled' ? 'is-active' : ''}" data-status="Cancelled">Cancelled</button>
                 </div>
             `,
             width: 360,
@@ -793,7 +899,11 @@ $(document).ready(function() {
                     data: JSON.stringify({status: result.value}),
                     contentType: 'application/json',
                     dataType: 'json',
-                    success: function() {
+                    success: function(response) {
+                        if (response && response.order && ['Pending', 'Processing', 'Completed', 'Cancelled'].includes(result.value)) {
+                            showOrderReceiptPopup(response.order, result.value);
+                        }
+
                         Swal.fire('Success!', 'Order status updated to: ' + result.value, 'success').then(() => {
                             loadOrders();
                         });

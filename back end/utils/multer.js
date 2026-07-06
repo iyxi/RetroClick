@@ -1,23 +1,26 @@
+const fs = require('fs');
 const multer = require("multer");
 const path = require("path");
-
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const ext = path.extname(file.originalname).toLowerCase();
+        let dest;
+
         if (ext === '.mp3' || ext === '.mp4' || file.mimetype.startsWith('audio') || file.mimetype.startsWith('video')) {
-            cb(null, 'media');
+            dest = path.join(__dirname, '..', 'media');
         } else {
-            cb(null, 'images');
+            dest = path.join(__dirname, '..', '..', 'images');
         }
+
+        fs.mkdirSync(dest, { recursive: true });
+        cb(null, dest);
     },
     filename: function (req, file, cb) {
-
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname).toLowerCase();
         let baseName = path.parse(file.originalname).name.replace(/\\/g, '/');
         cb(null, baseName + '-' + uniqueSuffix + ext);
-        // cb(null, path.parse(file.originalname).name + '-' + uniqueSuffix + ext);
     }
 });
 

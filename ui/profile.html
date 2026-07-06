@@ -157,7 +157,10 @@
 
           <div class="form-group">
             <label for="avatar">Profile Picture</label>
-            <input type="file" class="form-control-file" id="avatar" name="image" accept="image/*">
+            <div class="input-group">
+              <input type="file" class="form-control-file" id="avatar" name="image" accept="image/*">
+              <button type="button" id="removeAvatarBtn" class="btn btn-outline-secondary">Remove</button>
+            </div>
             <div class="form-note">This will be saved to your customer profile image.</div>
           </div>
 

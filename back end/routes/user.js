@@ -49,7 +49,7 @@ router.get('/profile', isAuthenticatedUser, (req, res) => {
             return res.status(500).json({ error: 'Error fetching profile', details: error.message });
         });
 })
-router.post('/update-profile', isAuthenticatedUser, upload.any(), updateUser)
+router.post('/update-profile', isAuthenticatedUser, upload.single('image'), updateUser)
 router.delete('/deactivate', deactivateUser)
 
 // Admin user management routes
