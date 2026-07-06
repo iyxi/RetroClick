@@ -291,38 +291,35 @@ exports.updateItem = async (req, res, next) => {
     }
 };
 
-// Archive item
+// Archive item (delete operation)
 exports.archiveItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const item = await Item.findByPk(id);
-        if (!item) {
+
+        // Delete related cart items first (foreign key constraint)
+        const CartItem = db.CartItem;
+        await CartItem.destroy({ where: { item_id: id } });
+        
+        // Delete related images
+        await ItemImage.destroy({ where: { item_id: id } });
+        
+        // Delete item
+        const result = await Item.destroy({ where: { item_id: id } });
+        
+        if (result === 0) {
             return res.status(404).json({ success: false, error: 'Item not found' });
         }
 
-        await Item.update({ is_visible: false }, { where: { item_id: id } });
-        return res.status(200).json({ success: true, message: 'Product archived successfully' });
+        return res.status(200).json({ success: true, message: 'Product deleted successfully' });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error archiving item', details: error.message });
+        return res.status(500).json({ error: 'Error deleting item', details: error.message });
     }
 };
 
-// Restore item
+// Restore item - no longer used (kept for backwards compatibility)
 exports.restoreItem = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const item = await Item.findByPk(id);
-        if (!item) {
-            return res.status(404).json({ success: false, error: 'Item not found' });
-        }
-
-        await Item.update({ is_visible: true }, { where: { item_id: id } });
-        return res.status(200).json({ success: true, message: 'Product restored successfully' });
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'Error restoring item', details: error.message });
-    }
+    return res.status(400).json({ success: false, error: 'Restore is no longer available. Deleted items cannot be restored.' });
 };
 
 // Delete item

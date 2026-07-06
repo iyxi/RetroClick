@@ -429,10 +429,10 @@ form::before {
 
 label {
   display: block;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
@@ -447,13 +447,14 @@ input[type="file"],
 select,
 textarea {
   width: 100%;
-  min-height: 42px;
+  min-height: 50px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: #fffaf0;
   color: var(--ink);
   font-family: var(--font-body);
-  padding: 0.65rem 0.75rem;
+  font-size: 1.15rem;
+  padding: 0.9rem 1rem;
   transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 
@@ -2146,13 +2147,13 @@ footer a:hover {
 }
 
 .form-group {
-  margin-bottom: .75rem;
+  margin-bottom: .35rem;
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .85rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: .45rem;
 }
 
 .checkout-form input,
@@ -2780,14 +2781,16 @@ body.admin-os::before {
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
-  .chart-wrap {
-    position: relative;
-    min-height: 220px;
-  }
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  .chart-wrap-wide {
-    min-height: 240px;
-  }
+.chart-wrap {
+  position: relative;
+  min-height: 220px;
+}
 
   .chart-wrap canvas {
     width: 100% !important;
@@ -2959,11 +2962,11 @@ body.admin-os::before {
 
 /* product/edit form inside .card: console input styling */
 .admin-main .form-row {
-  margin-bottom: .15rem;
+  margin-bottom: .1rem;
 }
 
 .admin-main .form-group {
-  margin-bottom: .75rem;
+  margin-bottom: .35rem;
 }
 
 .admin-main select,

@@ -32,7 +32,7 @@ $(document).ready(function() {
         return;
     }
 
-    if (role !== 'admin' && role !== 'manager') {
+    if (role !== 'admin') {
         showAccessMessage('Only admin users may access this page.', 'profile.html');
         return;
     }
@@ -49,6 +49,26 @@ $(document).ready(function() {
     // Helper function to get Authorization header
     const getAuthHeader = () => {
         return { 'Authorization': `Bearer ${JSON.parse(token)}` };
+    };
+
+    // Helper function to format error messages with detailed information
+    const getDetailedErrorMessage = (error) => {
+        let message = 'An unknown error occurred';
+        let details = '';
+
+        if (error.responseJSON) {
+            message = error.responseJSON.error || error.responseJSON.message || message;
+            details = error.responseJSON.details || '';
+        } else if (error.statusText) {
+            message = `${error.status} ${error.statusText}`;
+            details = error.statusText === 'error' ? 'Network error or server is unreachable' : '';
+        }
+
+        // Format for display
+        if (details) {
+            return `${message}\n\nDetails: ${details}`;
+        }
+        return message;
     };
 
     // Initialize DataTables and sales charts
@@ -395,8 +415,9 @@ $(document).ready(function() {
             error: function(error) {
                 console.error('Load sales overview error:', error);
                 destroySalesCharts();
+                const errorMsg = getDetailedErrorMessage(error);
                 $('#salesTable tbody').html('<tr><td colspan="11" class="text-center text-danger">Failed to load sales overview</td></tr>');
-                Swal.fire('Error', error.responseJSON?.error || 'Failed to load sales overview', 'error');
+                Swal.fire('Error', errorMsg, 'error');
             }
         });
     };
@@ -461,7 +482,8 @@ $(document).ready(function() {
                     return;
                 }
 
-                Swal.fire('Error', 'Failed to load product details for editing', 'error');
+                const errorMsg = getDetailedErrorMessage(error);
+                Swal.fire('Error', errorMsg, 'error');
             }
         });
     };
@@ -533,9 +555,7 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error('Save product error:', error);
-                // Provide detailed server message when available
-                const serverMsg = error.responseJSON?.error || error.responseJSON?.message || (error.responseText || null);
-                const errorMsg = serverMsg || 'Failed to save product';
+                const errorMsg = getDetailedErrorMessage(error);
                 Swal.fire('Error', errorMsg, 'error');
             }
         });
@@ -560,8 +580,8 @@ $(document).ready(function() {
                         const visible = product.is_visible === true || product.is_visible === 1 || product.is_visible === '1';
                         const statusLabel = visible ? 'Active' : 'Archived';
                         const statusClass = visible ? 'badge-success' : 'badge-secondary';
-                        const visibilityAction = visible ? 'Archive' : 'Restore';
-                        const visibilityIcon = visible ? 'fa-archive' : 'fa-undo';
+                        const visibilityAction = visible ? 'Delete' : 'Delete';
+                        const visibilityIcon = visible ? 'fa-trash' : 'fa-trash';
 
                         // embed product fields as data attributes so we can populate the edit form without an extra request if needed
                         const dataAttrs = `data-brand="${(product.camera_brand || '').replace(/\"/g, '&quot;')}" data-model="${(product.camera_model || '').replace(/\"/g, '&quot;')}" data-desc="${(product.description || '').replace(/\"/g, '&quot;')}" data-condition="${(product.condition || '')}" data-cost="${product.cost_price || 0}" data-sell="${product.sell_price || 0}" data-qty="${stock}" data-year="${product.year_released || ''}"`;
@@ -577,7 +597,7 @@ $(document).ready(function() {
                             <td><span class="badge ${statusClass}">${statusLabel}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-info btn-action btn-edit" ${dataAttrs} data-id="${product.item_id}" data-visible="${visible}" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-warning btn-action btn-visibility" data-id="${product.item_id}" data-visible="${visible}" title="${visibilityAction}"><i class="fas ${visibilityIcon}"></i></button>
+                                <button class="btn btn-sm btn-danger btn-action btn-visibility" data-id="${product.item_id}" data-visible="${visible}" title="${visibilityAction}"><i class="fas ${visibilityIcon}"></i></button>
                             </td>
                         </tr>`;
                     });
@@ -598,7 +618,8 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error('Load products error:', error);
-                Swal.fire('Error', 'Failed to load products', 'error');
+                const errorMsg = getDetailedErrorMessage(error);
+                Swal.fire('Error', errorMsg, 'error');
                 $('#productsTable tbody').html('<tr><td colspan="9" class="text-center text-danger">Failed to load products</td></tr>');
             }
         });
@@ -607,15 +628,15 @@ $(document).ready(function() {
     window.toggleProductVisibility = function(id, visible) {
         const shouldArchive = visible === true || visible === 'true' || visible === 1 || visible === '1';
         const action = shouldArchive ? 'archive' : 'restore';
-        const title = shouldArchive ? 'Archive Product?' : 'Restore Product?';
-        const text = shouldArchive ? 'This product will be hidden from the storefront.' : 'This product will become visible again.';
+        const title = shouldArchive ? 'Delete Product?' : 'Restore Product?';
+        const text = shouldArchive ? 'This product will be permanently deleted. This action cannot be undone.' : 'This product will become visible again.';
 
         Swal.fire({
             title,
             text,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: shouldArchive ? 'Yes, Archive' : 'Yes, Restore',
+            confirmButtonText: shouldArchive ? 'Yes, Delete' : 'Yes, Restore',
             cancelButtonText: 'Cancel',
             allowOutsideClick: false
         }).then(result => {
@@ -632,7 +653,7 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error(`${action} product error:`, error);
-                        const errorMsg = error.responseJSON?.error || `Failed to ${action} product`;
+                        const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -779,7 +800,7 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error('Update order error:', error);
-                        const errorMsg = error.responseJSON?.error || 'Failed to update order';
+                        const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -810,7 +831,7 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error('Delete order error:', error);
-                        const errorMsg = error.responseJSON?.error || 'Failed to delete order';
+                        const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -879,7 +900,6 @@ $(document).ready(function() {
             input: 'select',
             inputOptions: {
                 'customer': 'Customer',
-                'manager': 'Manager',
                 'admin': 'Admin'
             },
             inputValue: currentRole,
@@ -902,7 +922,7 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error('Update role error:', error);
-                        const errorMsg = error.responseJSON?.error || error.responseJSON?.message || 'Failed to update role';
+                        const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -937,7 +957,7 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error('Toggle user status error:', error);
-                        const errorMsg = error.responseJSON?.error || error.responseJSON?.message || `Failed to ${action} user`;
+                        const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }
                 });
@@ -1049,14 +1069,16 @@ $(document).ready(function() {
                                 },
                                 error: function(error) {
                                     console.error('Update stock error:', error);
-                                    Swal.fire('Error', 'Failed to update stock', 'error');
+                                    const errorMsg = getDetailedErrorMessage(error);
+                                    Swal.fire('Error', errorMsg, 'error');
                                 }
                             });
                         }
                     },
                     error: function(error) {
                         console.error('Get item error:', error);
-                        Swal.fire('Error', 'Failed to retrieve item details', 'error');
+                        const errorMsg = getDetailedErrorMessage(error);
+                        Swal.fire('Error', errorMsg, 'error');
                     }
                 });
             }
