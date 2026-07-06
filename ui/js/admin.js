@@ -840,6 +840,14 @@ $(document).ready(function() {
     };
 
     // USER MANAGEMENT
+    const getCurrentAdminId = () => {
+        try {
+            return JSON.parse(userId);
+        } catch (error) {
+            return userId;
+        }
+    };
+
     const loadUsers = function() {
         $.ajax({
             method: 'GET',
@@ -859,6 +867,8 @@ $(document).ready(function() {
                         const statusBadge = user.is_active ? 'badge-success' : 'badge-danger';
                         const buttonText = user.is_active ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check"></i>';
                         const buttonClass = user.is_active ? 'btn-danger' : 'btn-success';
+                        const isCurrentAdmin = String(user.id) === String(getCurrentAdminId());
+                        const userNameArg = String(user.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                         
                         html += `<tr>
                             <td>${user.id}</td>
@@ -870,6 +880,7 @@ $(document).ready(function() {
                             <td>
                                 <button class="btn btn-sm btn-warning btn-action" onclick="changeUserRole(${user.id}, '${user.role}')" title="Change Role"><i class="fas fa-key"></i></button>
                                 <button class="btn btn-sm ${buttonClass} btn-action" onclick="toggleUserStatus(${user.id}, ${user.is_active})" title="${user.is_active ? 'Deactivate' : 'Activate'}">${buttonText}</button>
+                                <button class="btn btn-sm btn-dark btn-action" onclick="deleteUserAccount(${user.id}, '${userNameArg}')" title="Delete Account" ${isCurrentAdmin ? 'disabled' : ''}><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>`;
                     });
@@ -957,6 +968,43 @@ $(document).ready(function() {
                     },
                     error: function(error) {
                         console.error('Toggle user status error:', error);
+                        const errorMsg = getDetailedErrorMessage(error);
+                        Swal.fire('Error', errorMsg, 'error');
+                    }
+                });
+            }
+        });
+    };
+
+    window.deleteUserAccount = function(userId, userName) {
+        const currentAdminId = getCurrentAdminId();
+        if (String(userId) === String(currentAdminId)) {
+            Swal.fire('Error', 'You cannot delete your own account from the admin panel.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Delete User?',
+            text: `Permanently remove ${userName || 'this user'}? This cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    method: 'DELETE',
+                    url: `${url}api/v1/users/${userId}`,
+                    headers: getAuthHeader(),
+                    dataType: 'json',
+                    success: function() {
+                        Swal.fire('Deleted!', 'User account deleted successfully', 'success').then(() => {
+                            loadUsers();
+                        });
+                    },
+                    error: function(error) {
+                        console.error('Delete user error:', error);
                         const errorMsg = getDetailedErrorMessage(error);
                         Swal.fire('Error', errorMsg, 'error');
                     }

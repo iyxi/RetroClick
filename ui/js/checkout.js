@@ -59,43 +59,106 @@ $(document).ready(function () {
 
     const formatMoney = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatReceiptDate = (inputDate = new Date()) => {
+        const date = new Date(inputDate);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
+    };
+
     const getSelectedItems = () => getCart().filter(item => item.selected);
 
-    const buildReceiptHtml = ({ receiptOrderId, selectedItems, shipping, paymentMethod: chosenPaymentMethod, total, subtotal, discount, shippingFee }) => {
-        const itemsHtml = selectedItems.map(item => `
-            <li>
-                <span>${item.description} x${item.quantity}</span>
-                <strong>${formatMoney(item.price * item.quantity)}</strong>
-            </li>
-        `).join('');
+    const buildReceiptHtml = ({ receiptOrderId, selectedItems, shipping, paymentMethod: chosenPaymentMethod, total, subtotal, discount, shippingFee, datePlaced, previewMode = false }) => {
+        const itemsHtml = selectedItems.map(item => {
+            const itemName = escapeHtml(item.description || item.name || `Item #${item.item_id || ''}`);
+            const qty = Number(item.quantity || 0);
+            const unitPrice = Number(item.price || 0);
+            const lineTotal = unitPrice * qty;
+
+            return `
+                <li>
+                    <div class="receipt-item-name">${itemName}</div>
+                    <div class="receipt-item-meta">${qty} x ${formatMoney(unitPrice)}</div>
+                    <div class="receipt-item-total">${formatMoney(lineTotal)}</div>
+                </li>
+            `;
+        }).join('');
+
+        const orderNo = previewMode ? 'PREVIEW' : String(receiptOrderId || 'N/A').padStart(6, '0');
+        const customerName = escapeHtml(shipping?.fullname || 'Customer');
+        const customerAddress = [shipping?.address1, shipping?.address2, shipping?.city, shipping?.province, shipping?.zip, shipping?.country]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join(', ');
+        const shownDate = formatReceiptDate(datePlaced || new Date());
 
         return `
-            <div class="text-left">
-                <div class="receipt-section">
-                    <h4>Receipt #${receiptOrderId}</h4>
-                    <ul class="receipt-list">${itemsHtml}</ul>
+            <div class="vintage-receipt">
+                <div class="receipt-topline">
+                    <span>RECEIPT</span>
+                    <span>No. ${orderNo}</span>
                 </div>
-                <div class="receipt-section">
-                    <h4>Shipping</h4>
-                    <ul class="receipt-list">
-                        <li><span>Name</span><strong>${shipping.fullname}</strong></li>
-                        <li><span>Email</span><strong>${shipping.email}</strong></li>
-                        <li><span>Address</span><strong>${shipping.address1}${shipping.address2 ? ', ' + shipping.address2 : ''}, ${shipping.city}, ${shipping.province}, ${shipping.zip}</strong></li>
-                        <li><span>Country</span><strong>${shipping.country}</strong></li>
-                    </ul>
-                </div>
-                <div class="receipt-section">
-                    <h4>Payment</h4>
-                    <ul class="receipt-list">
-                        <li><span>Method</span><strong>${chosenPaymentMethod}</strong></li>
-                        <li><span>Subtotal</span><strong>${formatMoney(subtotal)}</strong></li>
-                        <li><span>Shipping</span><strong>${formatMoney(shippingFee)}</strong></li>
-                        ${discount > 0 ? `<li><span>Discount</span><strong>${formatMoney(discount * -1)}</strong></li>` : ''}
-                        <li><span>Total</span><strong>${formatMoney(total)}</strong></li>
-                    </ul>
-                </div>
+                <h3 class="receipt-brand">RetroClick</h3>
+                <p class="receipt-tagline">Vintage camera marketplace</p>
+
+                <div class="receipt-divider"></div>
+
+                <div class="receipt-meta-row"><span>DATE:</span><span>${shownDate}</span></div>
+                <div class="receipt-meta-row"><span>CUSTOMER:</span><span>${customerName}</span></div>
+                <div class="receipt-meta-row"><span>PAYMENT:</span><span>${escapeHtml(chosenPaymentMethod || 'COD')}</span></div>
+                <div class="receipt-meta-row"><span>EMAIL:</span><span>${escapeHtml(shipping?.email || '')}</span></div>
+                <div class="receipt-address">${customerAddress || 'Address to be confirmed'}</div>
+
+                <div class="receipt-divider"></div>
+
+                <ul class="receipt-items-list">
+                    ${itemsHtml || '<li><div class="receipt-item-name">No items</div><div class="receipt-item-total">-</div></li>'}
+                </ul>
+
+                <div class="receipt-divider"></div>
+
+                <div class="receipt-amount-row"><span>SUBTOTAL</span><span>${formatMoney(subtotal)}</span></div>
+                <div class="receipt-amount-row"><span>SHIPPING</span><span>${formatMoney(shippingFee)}</span></div>
+                ${discount > 0 ? `<div class="receipt-amount-row"><span>DISCOUNT</span><span>-${formatMoney(discount)}</span></div>` : ''}
+                <div class="receipt-total-row"><span>TOTAL:</span><span>${formatMoney(total)}</span></div>
+
+                <p class="receipt-thanks">Thank you!</p>
+
+                ${previewMode ? '<p class="receipt-preview-note">Preview only. Final receipt number is generated after placing order.</p>' : ''}
             </div>
         `;
+    };
+
+    const buildReviewReceiptHtml = () => {
+        const selectedItems = getSelectedItems();
+        const orderData = renderOrderSummary();
+        paymentMethod = getSelectedPaymentMethod();
+
+        return buildReceiptHtml({
+            receiptOrderId: 'PREVIEW',
+            selectedItems,
+            shipping: shippingData || {},
+            paymentMethod,
+            total: orderData.total,
+            subtotal: orderData.subtotal,
+            discount: orderData.discount,
+            shippingFee: orderData.shipping,
+            previewMode: true
+        });
+    };
+
+    const renderReviewReceipt = () => {
+        $('#reviewReceipt').html(buildReviewReceiptHtml());
     };
 
     const updateStepUI = () => {
@@ -122,42 +185,6 @@ $(document).ready(function () {
         currentStep = step;
         updateStepUI();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const renderReviewReceipt = () => {
-        const selectedItems = getSelectedItems();
-        const orderData = renderOrderSummary();
-        paymentMethod = getSelectedPaymentMethod();
-
-        const receiptHtml = `
-            <div class="receipt-section">
-                <h4>Items</h4>
-                <ul class="receipt-list">
-                    ${selectedItems.map(item => `<li><span>${item.description} x${item.quantity}</span><strong>${formatMoney(item.price * item.quantity)}</strong></li>`).join('')}
-                </ul>
-            </div>
-            <div class="receipt-section">
-                <h4>Shipping</h4>
-                <ul class="receipt-list">
-                    <li><span>Name</span><strong>${shippingData?.fullname || ''}</strong></li>
-                    <li><span>Email</span><strong>${shippingData?.email || ''}</strong></li>
-                    <li><span>Address</span><strong>${[shippingData?.address1, shippingData?.address2].filter(Boolean).join(', ')}</strong></li>
-                    <li><span>City</span><strong>${[shippingData?.city, shippingData?.province, shippingData?.zip, shippingData?.country].filter(Boolean).join(', ')}</strong></li>
-                </ul>
-            </div>
-            <div class="receipt-section">
-                <h4>Payment</h4>
-                <ul class="receipt-list">
-                    <li><span>Method</span><strong>${paymentMethod}</strong></li>
-                    <li><span>Subtotal</span><strong>${formatMoney(orderData.subtotal)}</strong></li>
-                    <li><span>Shipping</span><strong>${formatMoney(orderData.shipping)}</strong></li>
-                    ${orderData.discount > 0 ? `<li><span>Discount</span><strong>${formatMoney(orderData.discount * -1)}</strong></li>` : ''}
-                    <li><span>Total</span><strong>${formatMoney(orderData.total)}</strong></li>
-                </ul>
-            </div>
-        `;
-
-        $('#reviewReceipt').html(receiptHtml);
     };
 
     function renderOrderSummary() {
@@ -516,13 +543,18 @@ $(document).ready(function () {
                     total: orderData.total,
                     subtotal: orderData.subtotal,
                     discount: orderData.discount,
-                    shippingFee: orderData.shipping
+                    shippingFee: orderData.shipping,
+                    datePlaced: data.order?.date_placed || new Date(),
+                    previewMode: false
                 });
 
                 Swal.fire({
                     icon: 'success',
                     title: 'Order Confirmed!',
-                    html: `<div style="text-align:left; max-height: 420px; overflow:auto;">${receiptHtml}</div>`,
+                    html: `<div class="swal-receipt-wrap">${receiptHtml}</div>`,
+                    customClass: {
+                        popup: 'receipt-swal-popup'
+                    },
                     confirmButtonText: 'Back to Home',
                     allowOutsideClick: false
                 }).then(() => {

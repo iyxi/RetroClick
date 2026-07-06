@@ -11,22 +11,43 @@ const formatCurrency = (value) => `₱${Number(value || 0).toFixed(2)}`;
 
 const escapePdfText = (text) => String(text || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 
-const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total }) => {
+const formatReceiptDateTime = (inputDate = new Date()) => {
+    const date = new Date(inputDate);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
+};
+
+const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total, paymentMethod }) => {
+    const subtotal = items.reduce((sum, item) => sum + Number(item.total || Number(item.price || 0) * Number(item.quantity || 0)), 0);
     const lines = [
-        'RetroClick Receipt',
-        `Order #${orderId}`,
-        `Customer: ${customerName}`,
-        `Delivery Address: ${address}`,
+        'RECEIPT',
+        `No. ${String(orderId || '').padStart(6, '0')}`,
+        'RetroClick',
+        'Vintage Camera Marketplace',
+        '----------------------------------------',
+        `DATE: ${formatReceiptDateTime()}`,
+        `CUSTOMER: ${customerName}`,
+        `PAYMENT: ${paymentMethod || 'COD'}`,
+        `ADDRESS: ${address}`,
+        '----------------------------------------',
+        'ITEMS',
         '',
-        'Items:'
     ];
 
     items.forEach((item, index) => {
-        lines.push(`${index + 1}. ${item.name} | Qty: ${item.quantity} | Price: ${formatCurrency(item.price)} | Line Total: ${formatCurrency(item.total || item.price * item.quantity)}`);
+        lines.push(`${index + 1}. ${item.name}`);
+        lines.push(`    ${Number(item.quantity || 0)} x ${formatCurrency(item.price)}    ${formatCurrency(item.total || item.price * item.quantity)}`);
     });
 
-    lines.push('', `Shipping: ${formatCurrency(shippingFee)}`);
-    lines.push(`Total: ${formatCurrency(total)}`);
+    lines.push('', '----------------------------------------');
+    lines.push(`SUBTOTAL: ${formatCurrency(subtotal)}`);
+    lines.push(`SHIPPING: ${formatCurrency(shippingFee)}`);
+    lines.push(`TOTAL: ${formatCurrency(total)}`);
+    lines.push('', 'Thank you!', '');
 
     const contentLines = lines.map((line) => `(${escapePdfText(line)}) Tj\n0 -14 Td`);
     const contentStream = `BT\n/F1 11 Tf\n72 760 Td\n${contentLines.join('\n')}\nET`;
@@ -289,7 +310,8 @@ exports.createOrder = async (req, res) => {
             address: deliveryAddress,
             items: orderItems,
             shippingFee: Number(shippingFee || 0),
-            total
+            total,
+            paymentMethod
         });
 
         if (userRecord && userRecord.email) {

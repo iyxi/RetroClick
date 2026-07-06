@@ -62,9 +62,42 @@ $(document).ready(function () {
 
     $("#register").on('click', function (e) {
         e.preventDefault();
-        let name = $("#name").val()
-        let email = $("#email").val()
+        let name = $("#name").val().trim()
+        let email = $("#email").val().trim()
         let password = $("#password").val()
+
+        const missingFields = [];
+        if (!name) missingFields.push('name');
+        if (!email) missingFields.push('email');
+        if (!password) missingFields.push('password');
+
+        if (missingFields.length) {
+            const fieldLabel = missingFields.length === 1
+                ? missingFields[0]
+                : `${missingFields.slice(0, -1).join(', ')} and ${missingFields[missingFields.length - 1]}`;
+            Swal.fire({
+                icon: "error",
+                text: `Failed: ${fieldLabel} ${missingFields.length > 1 ? 'are' : 'is'} required.`
+            });
+            return;
+        }
+
+        if (!email.includes('@')) {
+            Swal.fire({
+                icon: "error",
+                text: "Failed: email format is invalid (missing @)."
+            });
+            return;
+        }
+
+        if (password.length < 8) {
+            Swal.fire({
+                icon: "error",
+                text: "Failed: password must be at least 8 characters."
+            });
+            return;
+        }
+
         let user = {
             name,
             email,
@@ -80,11 +113,13 @@ $(document).ready(function () {
                 console.log(data);
                 Swal.fire({
                     icon: "success",
-                    text: "register success",
-                    position: 'bottom-right'
+                    title: "Account created",
+                    text: "Your account was created successfully. Please sign in to continue.",
+                    position: 'center',
+                    confirmButtonText: 'Go to login'
 
                 }).then(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                 });
             },
             error: function (error) {
@@ -114,7 +149,7 @@ $(document).ready(function () {
         e.preventDefault();
 
         const showLoginError = message => {
-            $('#loginError').html(`Failed login <span>${message}</span>`);
+            $('#loginError').html(`<span>${message}</span>`);
             $('#email, #password').addClass('input-error');
         }
 
@@ -128,13 +163,23 @@ $(document).ready(function () {
 
         clearLoginError();
 
-        if (!email.includes('@')) {
-            showLoginError('no @ in email');
+        if (!email && !password) {
+            showLoginError('Failed: email and password are required.');
+            return;
+        }
+
+        if (!email) {
+            showLoginError('Failed: email is required.');
             return;
         }
 
         if (!password) {
-            showLoginError('password is required');
+            showLoginError('Failed: password is required.');
+            return;
+        }
+
+        if (!email.includes('@')) {
+            showLoginError('Failed: email format is invalid (missing @).');
             return;
         }
 
