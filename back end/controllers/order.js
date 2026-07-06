@@ -8,8 +8,16 @@ const EmailNotification = db.EmailNotification;
 const sendEmail = require('../utils/sendEmail');
 
 const formatCurrency = (value) => `₱${Number(value || 0).toFixed(2)}`;
+const formatReceiptMoney = (value) => `PHP ${Number(value || 0).toFixed(2)}`;
 
 const escapePdfText = (text) => String(text || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+const escapeHtml = (text) => String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const formatReceiptDateTime = (inputDate = new Date()) => {
     const date = new Date(inputDate);
@@ -21,43 +29,112 @@ const formatReceiptDateTime = (inputDate = new Date()) => {
     return `${month}/${day}/${year} ${hours}:${minutes}`;
 };
 
-const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total, paymentMethod }) => {
-    const subtotal = items.reduce((sum, item) => sum + Number(item.total || Number(item.price || 0) * Number(item.quantity || 0)), 0);
+const formatReceiptOrderNo = (orderId) => String(orderId || '').padStart(6, '0');
+
+const buildReceiptItems = (items) => items.map((item, index) => {
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.price || 0);
+    const lineTotal = Number(item.total || unitPrice * quantity);
+
+    return {
+        index: index + 1,
+        name: String(item.name || '').trim() || `Item #${item.item_id || index + 1}`,
+        quantity,
+        unitPrice,
+        lineTotal
+    };
+});
+
+const buildReceiptEmailHtml = ({ orderId, customerName, addressText, shippingEmail, items, shippingFee, total, paymentMethod, placedAt }) => {
+    const normalizedItems = buildReceiptItems(items);
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+    const dateText = formatReceiptDateTime(placedAt);
+
+    return `
+        <div style="max-width:560px;margin:0 auto;padding:18px 16px 20px;background:#f3ead7;border:1px solid rgba(92,63,38,.25);border-radius:12px;box-shadow:0 12px 28px rgba(64,35,22,.15);font-family:Arial,Helvetica,sans-serif;color:#3c2a21;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.08em;font-weight:800;color:#972f2f;text-transform:uppercase;">
+                <span>Receipt</span>
+                <span>No. ${escapeHtml(formatReceiptOrderNo(orderId))}</span>
+            </div>
+            <div style="text-align:center;margin-top:10px;">
+                <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:32px;line-height:1;color:#a3232f;">RetroClick</div>
+                <div style="margin-top:2px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#6a4b3a;">Vintage Camera Marketplace</div>
+            </div>
+            <div style="border-top:2px dashed rgba(90,63,38,.46);margin:12px 0;"></div>
+            <div style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;line-height:1.7;">
+                <div><strong>Date:</strong> ${escapeHtml(dateText)}</div>
+                <div><strong>Customer:</strong> ${escapeHtml(customerName)}</div>
+                <div><strong>Payment:</strong> ${escapeHtml(paymentMethod || 'COD')}</div>
+                <div><strong>Email:</strong> ${escapeHtml(shippingEmail || '')}</div>
+                <div><strong>Address:</strong> ${escapeHtml(addressText)}</div>
+            </div>
+            <div style="border-top:2px dashed rgba(90,63,38,.46);margin:12px 0;"></div>
+            <div style="margin:0;padding:0;">
+                ${normalizedItems.map(item => `
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:3px 12px;padding:8px 0;border-bottom:1px dotted rgba(90,63,38,.35);">
+                        <div style="font-size:14px;font-weight:700;color:#34241c;line-height:1.2;">${escapeHtml(item.name)}</div>
+                        <div style="grid-column:1/2;font-size:12px;color:#6b5142;">${item.quantity} x ${escapeHtml(formatCurrency(item.unitPrice))}</div>
+                        <div style="grid-column:2/3;grid-row:1/3;align-self:center;font-size:14px;font-weight:800;color:#3a2a21;">${escapeHtml(formatCurrency(item.lineTotal))}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="border-top:2px dashed rgba(90,63,38,.46);margin:12px 0;"></div>
+            <div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;line-height:1.8;">
+                <div style="display:flex;justify-content:space-between;gap:12px;"><span>Subtotal</span><span>${escapeHtml(formatCurrency(subtotal))}</span></div>
+                <div style="display:flex;justify-content:space-between;gap:12px;"><span>Shipping</span><span>${escapeHtml(formatCurrency(shippingFee))}</span></div>
+                <div style="display:flex;justify-content:space-between;gap:12px;font-size:18px;font-weight:900;color:#2b1d17;border-top:2px dashed rgba(90,63,38,.5);margin-top:8px;padding-top:8px;"><span>Total:</span><span>${escapeHtml(formatCurrency(total))}</span></div>
+            </div>
+            <div style="margin-top:14px;text-align:center;font-family:Georgia,'Times New Roman',serif;font-size:30px;font-style:italic;font-weight:700;color:#b02b3b;line-height:1;">Thank You!</div>
+        </div>
+    `;
+};
+
+const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, total, paymentMethod, placedAt }) => {
+    const normalizedItems = buildReceiptItems(items);
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+    const receiptWidth = 44;
+    const centerLine = (text) => {
+        const value = String(text || '');
+        if (value.length >= receiptWidth) return value;
+        const leftPad = Math.floor((receiptWidth - value.length) / 2);
+        return `${' '.repeat(leftPad)}${value}`;
+    };
+    const rule = '-'.repeat(receiptWidth);
     const lines = [
-        'RECEIPT',
-        `No. ${String(orderId || '').padStart(6, '0')}`,
-        'RetroClick',
-        'Vintage Camera Marketplace',
-        '----------------------------------------',
-        `DATE: ${formatReceiptDateTime()}`,
+        centerLine('RECEIPT'),
+        centerLine(`No. ${formatReceiptOrderNo(orderId)}`),
+        centerLine('RetroClick'),
+        centerLine('Vintage Camera Marketplace'),
+        rule,
+        `DATE: ${formatReceiptDateTime(placedAt)}`,
         `CUSTOMER: ${customerName}`,
         `PAYMENT: ${paymentMethod || 'COD'}`,
         `ADDRESS: ${address}`,
-        '----------------------------------------',
+        rule,
         'ITEMS',
         '',
     ];
 
-    items.forEach((item, index) => {
-        lines.push(`${index + 1}. ${item.name}`);
-        lines.push(`    ${Number(item.quantity || 0)} x ${formatCurrency(item.price)}    ${formatCurrency(item.total || item.price * item.quantity)}`);
+    normalizedItems.forEach((item) => {
+        lines.push(`${item.index}. ${item.name}`);
+        lines.push(`   ${String(item.quantity).padStart(2, ' ')} x ${formatReceiptMoney(item.unitPrice)}   ${formatReceiptMoney(item.lineTotal)}`);
     });
 
-    lines.push('', '----------------------------------------');
-    lines.push(`SUBTOTAL: ${formatCurrency(subtotal)}`);
-    lines.push(`SHIPPING: ${formatCurrency(shippingFee)}`);
-    lines.push(`TOTAL: ${formatCurrency(total)}`);
-    lines.push('', 'Thank you!', '');
+    lines.push('', rule);
+    lines.push(`SUBTOTAL: ${formatReceiptMoney(subtotal)}`);
+    lines.push(`SHIPPING: ${formatReceiptMoney(shippingFee)}`);
+    lines.push(`TOTAL: ${formatReceiptMoney(total)}`);
+    lines.push('', centerLine('Thank You!'), '');
 
     const contentLines = lines.map((line) => `(${escapePdfText(line)}) Tj\n0 -14 Td`);
-    const contentStream = `BT\n/F1 11 Tf\n72 760 Td\n${contentLines.join('\n')}\nET`;
+    const contentStream = `BT\n/F1 10 Tf\n72 770 Td\n${contentLines.join('\n')}\nET`;
 
     const objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
         '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
         '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
         `<< /Length ${Buffer.byteLength(contentStream, 'utf8')} >>\nstream\n${contentStream}\nendstream`,
-        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>'
     ];
 
     const pdfParts = ['%PDF-1.4\n'];
@@ -311,17 +388,22 @@ exports.createOrder = async (req, res) => {
             items: orderItems,
             shippingFee: Number(shippingFee || 0),
             total,
-            paymentMethod
+            paymentMethod,
+            placedAt: order.date_placed || new Date()
         });
 
         if (userRecord && userRecord.email) {
-            const html = `
-                <h2>Order Confirmation</h2>
-                <p>Hi ${fullName},</p>
-                <p>Your order #${order.orderinfo_id} has been placed successfully.</p>
-                <p><strong>Total:</strong> ${formatCurrency(total)}</p>
-                <p>We have attached your receipt with the delivery details.</p>
-            `;
+            const html = buildReceiptEmailHtml({
+                orderId: order.orderinfo_id,
+                customerName: fullName,
+                addressText: deliveryAddress,
+                shippingEmail: shippingData.email || userRecord.email,
+                items: orderItems,
+                shippingFee: Number(shippingFee || 0),
+                total,
+                paymentMethod,
+                placedAt: order.date_placed || new Date()
+            });
             await sendOrderEmail({
                 orderId: order.orderinfo_id,
                 recipientEmail: userRecord.email,
