@@ -2,7 +2,16 @@ $(document).ready(function () {
     const url = 'http://localhost:3000/'
     function getCart() {
         let cart = localStorage.getItem('cart');
-        return cart ? JSON.parse(cart) : [];
+        cart = cart ? JSON.parse(cart) : [];
+        let modified = false;
+        cart.forEach(item => {
+            if (typeof item.selected === 'undefined') {
+                item.selected = true;
+                modified = true;
+            }
+        });
+        if (modified) saveCart(cart);
+        return cart;
     }
 
     function saveCart(cart) {
@@ -101,6 +110,7 @@ $(document).ready(function () {
         let selectedSubtotal = 0;
         let selectedCount = 0;
         cart.forEach(item => {
+            if (typeof item.selected === 'undefined') item.selected = true;
             const price = parseFloat(item.price || 0);
             const qty = parseInt(item.quantity || 0, 10) || 0;
             const line = price * qty;
