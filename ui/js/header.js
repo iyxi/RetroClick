@@ -101,8 +101,6 @@ const setHeaderState = () => {
     $('#nav-logout').closest('li').remove();
   }
 };
-  }
-};
 
 const loadSharedFooter = () => {
   const $footer = $('#footer');
