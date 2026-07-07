@@ -105,6 +105,12 @@ const updateUser = async (req, res) => {
     try {
         const { fname, lname, addressline, zipcode, phone, userId, currentPassword, newPassword } = req.body;
 
+        const normalizeEmptyToNull = (value) => {
+            if (value === undefined) return undefined;
+            const trimmed = String(value).trim();
+            return trimmed === '' ? null : trimmed;
+        };
+
         // Determine the authenticated user ID when possible
         const authUserId = Number(req.user?.id);
         const requestedUserId = userId ? Number(userId) : null;
@@ -184,11 +190,11 @@ const updateUser = async (req, res) => {
             const updateObj = {
                 image_path: imagePath !== null ? imagePath : customer.image_path
             };
-            if (fname !== undefined) updateObj.fname = fname;
-            if (lname !== undefined) updateObj.lname = lname;
-            if (addressline !== undefined) updateObj.addressline = addressline;
-            if (zipcode !== undefined) updateObj.zipcode = zipcode;
-            if (phone !== undefined) updateObj.phone = phone;
+            if (fname !== undefined) updateObj.fname = normalizeEmptyToNull(fname);
+            if (lname !== undefined) updateObj.lname = normalizeEmptyToNull(lname);
+            if (addressline !== undefined) updateObj.addressline = normalizeEmptyToNull(addressline);
+            if (zipcode !== undefined) updateObj.zipcode = normalizeEmptyToNull(zipcode);
+            if (phone !== undefined) updateObj.phone = normalizeEmptyToNull(phone);
             await customer.update(updateObj);
         }
 

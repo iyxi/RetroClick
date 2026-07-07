@@ -183,6 +183,21 @@ const buildReceiptPdf = ({ orderId, customerName, address, items, shippingFee, t
     return Buffer.from(pdfParts.join(''), 'utf8');
 };
 
+const calculateOrderTotals = (orderLines = [], shippingFee = 0) => {
+    const subtotal = orderLines.reduce((sum, item) => {
+        const quantity = Number(item.quantity || 0);
+        const unitPrice = Number(item.unit_price || item.price || 0);
+        return sum + quantity * unitPrice;
+    }, 0);
+
+    const shipping = Number(shippingFee || 0);
+    return {
+        subtotal,
+        shipping,
+        total: subtotal + shipping
+    };
+};
+
 const createNotificationRecord = async ({ orderId, userId, email, subject, body, status, errorMessage }) => {
     try {
         await EmailNotification.create({
@@ -238,51 +253,38 @@ const sendOrderEmail = async ({ orderId, recipientEmail, recipientName, subject,
 // Get all orders with details
 exports.getAllOrders = async (req, res) => {
     try {
-        // Fetch orders with raw query
         const orders = await Order.findAll({
-            raw: true,
+            include: [
+                {
+                    model: OrderLine,
+                    include: [{ model: Item, attributes: ['item_id', 'description', 'sell_price'] }]
+                },
+                {
+                    model: Customer,
+                    include: [{ model: User, attributes: ['id', 'name', 'email'] }]
+                }
+            ],
             order: [['orderinfo_id', 'DESC']]
         });
 
-        // Fetch customer and user data for each order
-        const mappedOrders = await Promise.all(orders.map(async (order) => {
-            try {
-                const customer = await Customer.findOne({ 
-                    where: { customer_id: order.customer_id },
-                    raw: true 
-                });
-                
-                let user = null;
-                if (customer && customer.user_id) {
-                    user = await User.findOne({
-                        where: { id: customer.user_id },
-                        attributes: ['id', 'name', 'email'],
-                        raw: true
-                    });
-                }
-                
-                return {
-                    id: order.orderinfo_id,
-                    customer_id: order.customer_id,
-                    total: order.total,
-                    payment_method: order.payment_method,
-                    status: order.status,
-                    created_at: order.date_placed,
-                    User: user
-                };
-            } catch (err) {
-                console.log('Error mapping order:', err.message);
-                return {
-                    id: order.orderinfo_id,
-                    customer_id: order.customer_id,
-                    total: order.total,
-                    payment_method: order.payment_method,
-                    status: order.status,
-                    created_at: order.date_placed,
-                    User: null
-                };
-            }
-        }));
+        const mappedOrders = orders.map((order) => {
+            const orderLines = Array.isArray(order.OrderLines) ? order.OrderLines : [];
+            const totals = calculateOrderTotals(orderLines, order.shipping);
+
+            return {
+                id: order.orderinfo_id,
+                customer_id: order.customer_id,
+                total: totals.total,
+                subtotal: totals.subtotal,
+                shipping: totals.shipping,
+                payment_method: order.payment_method,
+                status: order.status,
+                created_at: order.date_placed,
+                User: order.Customer ? order.Customer.User : null,
+                Customer: order.Customer || null,
+                OrderLines: orderLines
+            };
+        });
 
         return res.status(200).json({ 
             success: true,
@@ -316,10 +318,14 @@ exports.getSingleOrder = async (req, res) => {
         }
 
         // Map the response to match frontend expectations
+        const orderLines = Array.isArray(order.OrderLines) ? order.OrderLines : [];
+        const totals = calculateOrderTotals(orderLines, order.shipping);
         const mappedOrder = {
             id: order.orderinfo_id,
             customer_id: order.customer_id,
-            total: order.total,
+            total: totals.total,
+            subtotal: totals.subtotal,
+            shipping: totals.shipping,
             status: order.status,
             created_at: order.date_placed,
             User: order.Customer ? order.Customer.User : null,
@@ -339,7 +345,6 @@ exports.createOrder = async (req, res) => {
         const cart = req.body.cart || req.body.items || [];
         const userId = req.user?.id || req.body.user?.id;
         const shippingData = req.body.shipping || {};
-        const totalAmount = req.body.total;
         const shippingFee = req.body.shipping_fee ?? req.body.shippingFee ?? 0;
         const paymentMethod = req.body.payment_method || req.body.paymentMethod || 'COD';
 
@@ -371,19 +376,10 @@ exports.createOrder = async (req, res) => {
             });
         }
 
-        // Calculate total amount
-        let subtotal = 0;
-        for (const item of cart) {
-            subtotal += Number(item.price || 0) * Number(item.quantity || 0);
-        }
-        const total = Number.isFinite(Number(totalAmount)) ? Number(totalAmount) : subtotal + Number(shippingFee || 0);
-
         // Create order using the correct field names
         const order = await Order.create({
             customer_id: customer.customer_id,
-            total,
             shipping: Number(shippingFee || 0),
-            order_items: cart,
             payment_method: paymentMethod,
             status: 'Pending'
         });
@@ -398,6 +394,12 @@ exports.createOrder = async (req, res) => {
             });
         }
 
+        const orderLines = await OrderLine.findAll({
+            where: { orderinfo_id: order.orderinfo_id },
+            raw: true
+        });
+        const totals = calculateOrderTotals(orderLines, shippingFee);
+
         const fullName = [customer.fname, customer.lname].filter(Boolean).join(' ').trim() || userRecord.name || 'Customer';
         const deliveryAddress = [customer.addressline, customer.zipcode].filter(Boolean).join(', ') || shippingData.address1 || 'To be confirmed';
         const orderItems = cart.map((item) => ({
@@ -411,8 +413,8 @@ exports.createOrder = async (req, res) => {
             customerName: fullName,
             address: deliveryAddress,
             items: orderItems,
-            shippingFee: Number(shippingFee || 0),
-            total,
+            shippingFee: totals.shipping,
+            total: totals.total,
             paymentMethod,
             placedAt: order.date_placed || new Date()
         });
@@ -424,8 +426,8 @@ exports.createOrder = async (req, res) => {
                 addressText: deliveryAddress,
                 shippingEmail: shippingData.email || userRecord.email,
                 items: orderItems,
-                shippingFee: Number(shippingFee || 0),
-                total,
+                shippingFee: totals.shipping,
+                total: totals.total,
                 paymentMethod,
                 placedAt: order.date_placed || new Date(),
                 status: order.status
@@ -448,6 +450,7 @@ exports.createOrder = async (req, res) => {
             success: true,
             message: 'Order created successfully',
             order_id: order.orderinfo_id,
+            total: totals.total,
             order
         });
     } catch (error) {
@@ -460,7 +463,7 @@ exports.createOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        const { total, total_amount, status } = req.body;
+        const { status } = req.body;
 
         const order = await Order.findOne({ where: { orderinfo_id: id } });
         if (!order) {
@@ -468,11 +471,6 @@ exports.updateOrder = async (req, res) => {
         }
 
         const updateData = {};
-        if (total !== undefined) {
-            updateData.total = total;
-        } else if (total_amount !== undefined) {
-            updateData.total = total_amount;
-        }
         if (status !== undefined) {
             const normalizedStatusMap = {
                 pending: 'Pending',
@@ -519,7 +517,7 @@ exports.updateOrder = async (req, res) => {
                 total: Number(orderLine.unit_price || 0) * Number(orderLine.quantity || 0)
             }));
             const shippingFee = Number(updatedOrder.shipping || 0);
-            const totalAmount = Number(updatedOrder.total || 0);
+            const totals = calculateOrderTotals(updatedOrder.OrderLines || [], shippingFee);
             const paymentMethod = updatedOrder.payment_method || 'COD';
 
             const existingReceipt = await db.Receipt.findOne({ where: { orderinfo_id: id } });
@@ -541,7 +539,7 @@ exports.updateOrder = async (req, res) => {
                 address: deliveryAddress,
                 items: orderItems,
                 shippingFee,
-                total: totalAmount,
+                total: totals.total,
                 paymentMethod,
                 placedAt: updatedOrder.date_placed || new Date(),
                 status: updateData.status
@@ -554,7 +552,7 @@ exports.updateOrder = async (req, res) => {
                 shippingEmail: linkedUser?.email || '',
                 items: orderItems,
                 shippingFee,
-                total: totalAmount,
+                total: totals.total,
                 paymentMethod,
                 placedAt: updatedOrder.date_placed || new Date(),
                 status: updateData.status

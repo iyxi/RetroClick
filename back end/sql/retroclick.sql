@@ -182,6 +182,7 @@ CREATE TABLE cart_item (
 
 -- =========================
 -- 6) ORDERS (keep names for existing code)
+-- Order totals and item details are normalized into orderline.
 -- =========================
 CREATE TABLE orderinfo (
   orderinfo_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -191,8 +192,6 @@ CREATE TABLE orderinfo (
   date_shipped DATETIME NULL,
 
   shipping DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  order_items JSON NOT NULL DEFAULT '[]',
 
   status ENUM('Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
   payment_method ENUM('GCash', 'Card', 'COD') NULL,
@@ -404,36 +403,28 @@ SELECT
   oi.date_placed,
   oi.status,
   oi.payment_method,
-  oi.total,
+  ROUND(SUM(ol.quantity * ol.unit_price), 2) AS total,
   c.customer_id,
   CONCAT(COALESCE(c.fname, ''), ' ', COALESCE(c.lname, '')) AS customer_name,
   c.phone,
   c.addressline,
   u.email
 FROM orderinfo oi
+INNER JOIN orderline ol ON ol.orderinfo_id = oi.orderinfo_id
 INNER JOIN customer c ON c.customer_id = oi.customer_id
-INNER JOIN users u ON u.id = c.user_id;
+INNER JOIN users u ON u.id = c.user_id
+GROUP BY oi.orderinfo_id, oi.date_placed, oi.status, oi.payment_method, c.customer_id, c.fname, c.lname, c.phone, c.addressline, u.email;
 
 CREATE OR REPLACE VIEW vw_sales_monthly AS
-WITH RECURSIVE seq AS (
-  SELECT 0 AS n
-  UNION ALL
-  SELECT n + 1 FROM seq WHERE n < 99
-)
 SELECT
   YEAR(oi.date_placed) AS sales_year,
   MONTH(oi.date_placed) AS sales_month,
   MONTHNAME(oi.date_placed) AS month_name,
-  ROUND(SUM(
-    CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].quantity'))) AS DECIMAL(12,2))
-    * CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].unit_price'))) AS DECIMAL(12,2))
-  ), 2) AS gross_sales,
-  SUM(
-    CAST(JSON_UNQUOTE(JSON_EXTRACT(oi.order_items, CONCAT('$[', seq.n, '].quantity'))) AS UNSIGNED)
-  ) AS units_sold,
+  ROUND(SUM(ol.quantity * ol.unit_price), 2) AS gross_sales,
+  SUM(ol.quantity) AS units_sold,
   COUNT(DISTINCT oi.orderinfo_id) AS order_count
 FROM orderinfo oi
-JOIN seq ON seq.n < JSON_LENGTH(oi.order_items)
+INNER JOIN orderline ol ON ol.orderinfo_id = oi.orderinfo_id
 WHERE oi.status IN ('Processing', 'Shipped', 'Completed')
 GROUP BY YEAR(oi.date_placed), MONTH(oi.date_placed), MONTHNAME(oi.date_placed)
 ORDER BY sales_year, sales_month;

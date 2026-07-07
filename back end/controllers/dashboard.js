@@ -62,7 +62,7 @@ exports.salesOverview = async (req, res) => {
                         oi.date_placed,
                         oi.status,
                         oi.payment_method,
-                        oi.total AS order_total,
+                        ROUND(SUM(ol.quantity * ol.unit_price) OVER (PARTITION BY oi.orderinfo_id), 2) AS order_total,
                         ol.orderline_id,
                         ol.item_id,
                         i.camera_brand,

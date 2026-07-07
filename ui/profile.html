@@ -46,8 +46,9 @@
 
     .profile-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.8fr);
+      grid-template-columns: minmax(0, 1.9fr) minmax(260px, 0.75fr);
       gap: 1.5rem;
+      align-items: start;
     }
 
     .profile-card {
@@ -56,6 +57,33 @@
       border-radius: 20px;
       background: rgba(255, 248, 232, 0.9);
       box-shadow: 0 12px 30px rgba(80, 44, 17, 0.08);
+      align-self: start;
+      height: fit-content;
+    }
+
+    .profile-card .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .profile-card .form-row > .form-group {
+      flex: 1;
+      min-width: 0;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .profile-card input.form-control,
+    .profile-card .input-group,
+    .profile-card .form-control-file {
+      width: 100%;
+      max-width: none;
+    }
+
+    .profile-card .input-group .btn {
+      flex-shrink: 0;
     }
 
     .profile-card h2 {
@@ -151,7 +179,9 @@
             </div>
             <div class="form-group col-md-6">
               <label for="phone">Phone</label>
-              <input type="tel" class="form-control" id="phone" name="phone" autocomplete="tel" placeholder="Mobile number" required>
+              <input type="tel" class="form-control" id="phone" name="phone" autocomplete="tel" placeholder="Mobile number">
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="avatar">Profile Picture</label>
