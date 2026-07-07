@@ -29,12 +29,31 @@ $(document).ready(function () {
         }
     };
 
+    const isLoggedIn = () => {
+        return !!getStoredToken();
+    };
+
     function renderCart() {
         let cart = getCart();
         let html = '';
         let total = 0;
         let selectedTotal = 0;
         let selectedCount = 0;
+        if (!isLoggedIn()) {
+            html = `
+                <div style="text-align:center; padding:3rem; color:var(--muted);">
+                    <h3>You should be logged in to purchase.</h3>
+                    <p>Please <a href="login.html" style="color:var(--bordeaux); text-decoration:underline;">login</a> to access your cart and checkout.</p>
+                    <a class="btn btn-primary" href="login.html">Login</a>
+                </div>
+            `;
+            $('#cartTable').html(html);
+            $('#cartCountPill').text('0 items');
+            if (document.getElementById('summarySubtotal')) document.getElementById('summarySubtotal').textContent = '₱0.00';
+            if (document.getElementById('summaryShipping')) document.getElementById('summaryShipping').textContent = '₱0.00';
+            if (document.getElementById('summaryTotal')) document.getElementById('summaryTotal').textContent = '₱0.00';
+            return;
+        }
         if (cart.length === 0) {
             html = '<p style="text-align:center; padding:2rem; color:var(--muted);">Your cart is empty.</p>';
         } else {

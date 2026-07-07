@@ -209,6 +209,29 @@ CREATE TABLE orderinfo (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE orderline (
+  orderline_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  orderinfo_id BIGINT UNSIGNED NOT NULL,
+  item_id INT UNSIGNED NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  unit_price DECIMAL(12,2) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (orderline_id),
+  KEY idx_orderline_order (orderinfo_id),
+  KEY idx_orderline_item (item_id),
+
+  CONSTRAINT chk_orderline_qty CHECK (quantity > 0),
+  CONSTRAINT fk_orderline_order
+    FOREIGN KEY (orderinfo_id) REFERENCES orderinfo(orderinfo_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_orderline_item
+    FOREIGN KEY (item_id) REFERENCES item(item_id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
 -- =========================
 -- 7) PAYMENTS / RECEIPTS
 -- =========================

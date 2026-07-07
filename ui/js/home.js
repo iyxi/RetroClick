@@ -381,8 +381,19 @@ $(document).ready(function () {
         localStorage.setItem('cart', JSON.stringify(cart));
     }
 
+    const getStoredToken = () => {
+        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        if (!rawToken) return null;
+
+        try {
+            return JSON.parse(rawToken);
+        } catch (error) {
+            return rawToken;
+        }
+    };
+
     const isLoggedIn = () => {
-        return !!sessionStorage.getItem('token');
+        return !!getStoredToken();
     };
 
     const requireLogin = () => {

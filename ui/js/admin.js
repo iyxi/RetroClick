@@ -367,7 +367,7 @@ $(document).ready(function() {
                 </tr>`;
             });
         } else {
-            html = '<tr><td colspan="11" class="text-center">No sales records found</td></tr>';
+            html = '<tr><td class="text-center">No sales records found</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
         }
 
         $('#salesTable tbody').html(html);
@@ -706,7 +706,7 @@ $(document).ready(function() {
                         </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="9" class="text-center">No products found</td></tr>';
+                    html = '<tr><td class="text-center">No products found</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
                 }
                 $('#productsTable tbody').html(html);
 
@@ -846,7 +846,7 @@ $(document).ready(function() {
                 if ($.fn.DataTable.isDataTable('#ordersTable')) {
                     ordersDataTable.clear().destroy();
                 }
-                $('#ordersTable tbody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load orders</td></tr>');
+                $('#ordersTable tbody').html('<tr><td class="text-center text-danger">Failed to load orders</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
             }
         });
     };
@@ -995,7 +995,7 @@ $(document).ready(function() {
                         </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
+                    html = '<tr><td class="text-center">No users found</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
                 }
                 $('#usersTable tbody').html(html);
 
@@ -1010,7 +1010,7 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error('Load users error:', error);
-                $('#usersTable tbody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load users</td></tr>');
+                $('#usersTable tbody').html('<tr><td class="text-center text-danger">Failed to load users</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
             }
         });
     };
@@ -1155,7 +1155,7 @@ $(document).ready(function() {
                         </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="5" class="text-center">No items found</td></tr>';
+                    html = '<tr><td class="text-center">No items found</td><td></td><td></td><td></td><td></td></tr>';
                 }
                 $('#stockTable tbody').html(html);
 
@@ -1169,7 +1169,7 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error('Load stock error:', error);
-                $('#stockTable tbody').html('<tr><td colspan="5" class="text-center text-danger">Failed to load stock</td></tr>');
+                $('#stockTable tbody').html('<tr><td class="text-center text-danger">Failed to load stock</td><td></td><td></td><td></td><td></td></tr>');
             }
         });
     };
