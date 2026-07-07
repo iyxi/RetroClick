@@ -2,6 +2,9 @@ const db = require('../models');
 const { Op } = require('sequelize');
 const Item = db.Item;
 const ItemImage = db.ItemImage;
+const Review = db.Review;
+const ReviewImage = db.ReviewImage;
+const Customer = db.Customer;
 
 // Get all items with images
 exports.getAllItems = async (req, res) => {
@@ -27,6 +30,11 @@ exports.getPublicItems = async (req, res) => {
             include: [{
                 model: ItemImage,
                 attributes: ['image_id', 'image_path', 'is_primary', 'sort_order']
+            }, {
+                model: Review,
+                where: { is_visible: true },
+                required: false,
+                include: [{ model: ReviewImage }, { model: Customer }]
             }],
             order: [[ItemImage, 'sort_order', 'ASC'], ['created_at', 'DESC']]
         });
@@ -81,6 +89,11 @@ exports.getSingleItem = async (req, res) => {
             include: [{
                 model: ItemImage,
                 attributes: ['image_id', 'image_path', 'is_primary', 'sort_order']
+            }, {
+                model: Review,
+                where: { is_visible: true },
+                required: false,
+                include: [{ model: ReviewImage }, { model: Customer }]
             }]
         });
 

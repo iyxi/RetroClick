@@ -212,6 +212,8 @@ $(document).ready(function() {
             loadUsers();
         } else if (tabName === 'stock') {
             loadStock();
+        } else if (tabName === 'reviews') {
+            loadReviews();
         } else if (tabName === 'sales') {
             loadSalesOverview();
         }
@@ -282,6 +284,104 @@ $(document).ready(function() {
         $('#totalRevenue').text('₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2}));
         $('#recentOrdersTable').html(html);
     };
+
+    // ------- Reviews management -------
+    const normalizeImagePath = (path) => {
+        if (!path) return '';
+        const p = String(path).trim();
+        if (/^https?:\/\//i.test(p)) return p;
+        return url + p.replace(/^\/+/, '');
+    };
+
+    const renderReviewImages = (images) => {
+        if (!Array.isArray(images) || !images.length) return '';
+        return images.map(img => {
+            const src = normalizeImagePath(img?.image_path || img?.path || img?.url || '');
+            if (!src) return '';
+            return `<img src="${src}" style="max-width:60px;margin-right:6px;border-radius:4px;border:1px solid rgba(0,0,0,0.06)"/>`;
+        }).join('');
+    };
+
+    const loadReviews = () => {
+        if ($.fn.DataTable.isDataTable('#reviewsTable')) {
+            $('#reviewsTable').DataTable().clear().destroy();
+        }
+        $('#reviewsTable tbody').html('<tr><td colspan="9" class="text-center">Loading reviews...</td></tr>');
+        $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/reviews`,
+            headers: getAuthHeader(),
+            dataType: 'json',
+            success: function (data) {
+                const rows = data.rows || [];
+                let html = '';
+                if (!rows.length) {
+                    html = '<tr><td class="text-center" colspan="9">No reviews found</td></tr>';
+                } else {
+                    rows.forEach(r => {
+                        const itemTitle = r.Item ? (r.Item.description || `#${r.item_id}`) : `#${r.item_id}`;
+
+                        // Resolve reviewer name and customer id from multiple possible shapes
+                        let userName = '';
+                        if (r.User && (r.User.name || r.User.fname || r.User.lname || r.User.email)) {
+                            userName = r.User.name || [r.User.fname, r.User.lname].filter(Boolean).join(' ') || r.User.email || '';
+                        } else if (r.Customer && (r.Customer.fname || r.Customer.lname || r.Customer.email)) {
+                            userName = [r.Customer.fname, r.Customer.lname].filter(Boolean).join(' ') || r.Customer.email || '';
+                        } else if (r.Customer && r.Customer.User && (r.Customer.User.name || r.Customer.User.email)) {
+                            userName = r.Customer.User.name || r.Customer.User.email || '';
+                        }
+
+                        // Prefer explicit customer id fields if present
+                        const customerId = r.Customer?.customer_id || r.Customer?.id || r.customer_id || r.user_id || r.User?.id || r.User?.user_id || '';
+                        const userDisplay = customerId ? String(customerId) : (userName || 'Customer');
+
+                        const imagesHtml = renderReviewImages(r.ReviewImages || []);
+
+                        // Created date may be in several fields depending on API
+                        const rawDate = r.created_at || r.createdAt || r.date_created || r.created || r.date || null;
+                        const createdAt = rawDate ? (new Date(rawDate).toLocaleString() || rawDate) : '-';
+
+                        html += `<tr>
+                            <td>${r.review_id}</td>
+                            <td>${escapeHtml(itemTitle)}</td>
+                            <td>${escapeHtml(userDisplay)}</td>
+                            <td>${r.rating || 0}</td>
+                            <td>${escapeHtml(r.comment || '')}</td>
+                            <td>${imagesHtml}</td>
+                            <td>${escapeHtml(createdAt)}</td>
+                            <td>${r.is_visible ? 'Yes' : 'No'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary btn-toggle-visibility" data-id="${r.review_id}" data-visible="${r.is_visible}">${r.is_visible ? 'Hide' : 'Show'}</button>
+                                <button class="btn btn-sm btn-outline-danger btn-delete-review" data-id="${r.review_id}">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                $('#reviewsTable tbody').html(html);
+                $('#reviewsTable').DataTable({ pageLength: 10, order: [[0, 'desc']] });
+            },
+            error: function (err) {
+                $('#reviewsTable tbody').html('<tr><td colspan="9" class="text-center">Error loading reviews</td></tr>');
+                console.error('Failed to load reviews', err);
+            }
+        });
+    };
+
+    // Toggle visibility
+    $(document).on('click', '.btn-toggle-visibility', function (e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        const current = $(this).data('visible');
+        const newVal = !current;
+        $.ajax({ method: 'PUT', url: `${url}api/v1/reviews/${id}/visibility`, headers: getAuthHeader(), contentType: 'application/json', data: JSON.stringify({ is_visible: newVal }), success: function () { loadReviews(); }, error: function (err) { Swal.fire('Error', 'Could not update visibility', 'error'); console.error(err); } });
+    });
+
+    // Delete review
+    $(document).on('click', '.btn-delete-review', function (e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        bootbox.confirm({ message: 'Delete this review?', buttons: { confirm: { label: 'Yes', className: 'btn-danger' }, cancel: { label: 'No', className: 'btn-secondary' } }, callback: function (result) { if (result) { $.ajax({ method: 'DELETE', url: `${url}api/v1/reviews/${id}`, headers: getAuthHeader(), success: function () { Swal.fire('Deleted'); loadReviews(); }, error: function (err) { Swal.fire('Error', 'Could not delete review', 'error'); console.error(err); } }); } } });
+    });
 
     // Tab switching
     window.showTab = function(eventOrTabName, maybeTabName) {

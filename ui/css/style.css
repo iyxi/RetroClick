@@ -1569,6 +1569,20 @@ textarea:focus {
   min-width: 170px;
 }
 
+.product-actions .view-reviews-btn {
+  min-width: auto;
+  padding: 0.6rem 0.85rem;
+  background: transparent !important;
+  color: var(--bordeaux) !important;
+  border: 1px solid rgba(116, 48, 20, 0.2) !important;
+  box-shadow: none;
+}
+
+.product-actions .view-reviews-btn:hover {
+  background: rgba(116, 48, 20, 0.08) !important;
+  color: var(--bordeaux) !important;
+}
+
 /* optional corner badge — apply class="badge-corner badge-popular|badge-new|badge-pro"
    to a child element inside .product-image if/when the markup supports it */
 .badge-corner {
@@ -3015,13 +3029,6 @@ body.admin-os::before {
   #salesTable {
     width: 100% !important;
   }
-  width: 70px;
-  text-align: right;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--bordeaux);
-  flex-shrink: 0;
-}
 
 /* -- KPI strip reusing stat-card look but smaller, for sales filters -- */
 .sales-toolbar {

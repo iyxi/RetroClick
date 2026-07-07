@@ -233,10 +233,58 @@
         <div class="profile-meta" id="profileSummary">
           Your shipping and contact details will appear here after the profile loads.
         </div>
+        <div class="section-divider"></div>
+        <h3>Purchase History</h3>
+        <div id="purchaseHistory">
+          <p class="text-muted">Loading your purchases...</p>
+        </div>
       </aside>
     </div>
   </main>
 
   <div id="footer"></div>
+
+  <!-- Reviews Modal (profile) -->
+  <div class="modal fade" id="reviewsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Product Reviews</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="reviewsList"></div>
+          <hr />
+          <div id="reviewFormContainer">
+            <h6>Write a review</h6>
+            <form id="reviewForm">
+              <input type="hidden" id="reviewItemId" name="item_id" />
+              <div class="form-group">
+                <label for="ratingSelect">Rating</label>
+                <select id="ratingSelect" name="rating" class="form-control">
+                  <option value="5">5 - Excellent</option>
+                  <option value="4">4 - Good</option>
+                  <option value="3">3 - Average</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="1">1 - Terrible</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="commentText">Comment</label>
+                <textarea id="commentText" name="comment" class="form-control" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="reviewImages">Images</label>
+                <input type="file" id="reviewImages" name="images" accept="image/*" multiple class="form-control-file" />
+              </div>
+              <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

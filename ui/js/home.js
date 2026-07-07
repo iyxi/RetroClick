@@ -32,6 +32,15 @@ $(document).ready(function () {
       return normalized;
     };
 
+    const renderStars = (avg) => {
+      const full = Math.round(avg || 0);
+      let stars = '';
+      for (let i = 1; i <= 5; i += 1) {
+        stars += i <= full ? '<i class="fas fa-star" style="color:#f5b301"></i>' : '<i class="far fa-star" style="color:#ccc"></i>';
+      }
+      return stars;
+    };
+
     const normalizeImageList = (value) => {
       const images = Array.isArray(value?.ItemImages) ? value.ItemImages.slice() : [];
       const primaryImagePath = value?.img_path ? normalizeImagePath(value.img_path) : null;
@@ -88,9 +97,11 @@ $(document).ready(function () {
       const imagePath = primaryImage ? `${url}${encodeURI(primaryImage)}` : 'https://via.placeholder.com/400x250?text=No+Image';
       const imagesAttrEscaped = encodeURIComponent(JSON.stringify(imagesList));
       const cartButtonLabel = stockQty > 0 ? 'Add to Cart' : 'Out of Stock';
+      const reviewCount = Array.isArray(value.Reviews) ? value.Reviews.length : 0;
+      const avgRating = reviewCount ? value.Reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviewCount : 0;
 
       return `
-        <div class="col-12 col-md-6 col-lg-4 mb-4">
+        <div class="col-12 col-md-6 col-lg-6 mb-4">
           <article class="product-card card-carousel" data-item-id="${value.item_id}" data-images='${imagesAttrEscaped}' data-index="0">
             <div class="product-image">
               <button type="button" class="nav-arrow left carousel-prev" aria-label="Previous image">‹</button>
@@ -106,6 +117,7 @@ $(document).ready(function () {
                 <span class="product-stock">Stock: ${stockQty}</span>
               </div>
               <div class="product-price">₱ ${parseFloat(value.sell_price).toFixed(2)}</div>
+              <div class="product-rating" style="margin-top:0.5rem">${renderStars(avgRating)} <small>(${reviewCount})</small></div>
               <div class="product-actions">
                 <button type="button" class="btn btn-primary btn-cart add-to-cart-card"
                   data-id="${value.item_id}"
@@ -115,6 +127,7 @@ $(document).ready(function () {
                   data-primary="${primaryImage || ''}">
                   ${cartButtonLabel}
                 </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary view-reviews-btn" data-id="${value.item_id}">View Reviews</button>
               </div>
             </div>
           </article>
@@ -363,20 +376,73 @@ $(document).ready(function () {
         suggestionsRoot.html(createSearchSuggestionMarkup(suggestions)).removeClass('d-none');
       };
 
-      searchInput.on('input', function () {
-        renderSuggestions(this.value);
-      });
+        // flags to control autofill behavior
+        let _isDeletion = false;
+        let _skipAutofill = false;
 
-      searchInput.on('keydown', function (event) {
-        if (event.key === 'Escape') {
-          clearSuggestions();
-        }
-      });
+        searchInput.on('keydown', function (event) {
+          // detect deletion keys
+          _isDeletion = event.key === 'Backspace' || event.key === 'Delete';
 
-      suggestionsRoot.on('click', '.search-suggestion-item', function () {
+          // Accept suggestion with ArrowRight or Tab
+          if (event.key === 'ArrowRight' || event.key === 'Tab') {
+            const selStart = this.selectionStart || 0;
+            const val = this.value || '';
+            // if there is a selection at the end, move caret to end (accept suggestion)
+            if (this.selectionEnd && this.selectionEnd > selStart) {
+              this.setSelectionRange(val.length, val.length);
+              if (event.key === 'ArrowRight') event.preventDefault();
+              _skipAutofill = true;
+              return;
+            }
+          }
+          if (event.key === 'Escape') {
+            // clear selection by setting caret to end of typed substring
+            const original = (this.getAttribute('data-original') || this.value) || '';
+            try { this.setSelectionRange(original.length, original.length); } catch (e) {}
+            clearSuggestions();
+          }
+        });
+
+        searchInput.on('input', function () {
+          const raw = this.value || '';
+          renderSuggestions(raw);
+
+          // Inline type-ahead: if top suggestion startsWith typed value, autofill and select appended text
+          if (!_isDeletion && !_skipAutofill) {
+            const suggestions = buildSearchSuggestions(raw);
+            if (suggestions.length && raw.length > 0) {
+              const top = suggestions[0].label || '';
+              if (top.toLowerCase().startsWith(raw.toLowerCase()) && top.length > raw.length) {
+                // set value to full suggestion and select appended portion
+                this.value = top;
+                try { this.setSelectionRange(raw.length, top.length); } catch (e) {}
+              }
+            }
+          }
+
+          // reset flags
+          _isDeletion = false;
+          _skipAutofill = false;
+        });
+  // store original typed text before blur so we can restore if needed
+  searchInput.on('focus', function () { this.setAttribute('data-original', this.value || ''); });
+  searchInput.on('blur', function () { this.removeAttribute('data-original'); setTimeout(clearSuggestions, 150); });
+
+      suggestionsRoot.on('click', '.search-suggestion-item', function (ev) {
+        ev.preventDefault();
         const value = $(this).data('value');
+        _skipAutofill = true;
+        // set the input value and focus it
         searchInput.val(value);
+        try {
+          const el = searchInput.get(0);
+          el.focus();
+          el.setSelectionRange(value.length, value.length);
+        } catch (e) {}
         clearSuggestions();
+        // small timeout to re-enable autofill for subsequent typing
+        setTimeout(() => { _skipAutofill = false; }, 200);
         searchInput.trigger('input');
       });
 
@@ -565,7 +631,47 @@ $(document).ready(function () {
         }
     });
 
-const addToCartFromCard = async function (button) {
+const showAddToCartModal = (payload) => {
+        const image = payload.image || 'https://via.placeholder.com/120x90?text=No+Image';
+        $('#cartModalImage').attr('src', image);
+        $('#cartModalDesc').text(payload.description || 'Item');
+        $('#cartModalPrice').text(`₱${parseFloat(payload.price || 0).toFixed(2)}`);
+        $('#cartModalQty').val(1).attr('max', payload.stock || 1);
+        $('#cartModalAlert').addClass('d-none').text('');
+        $('#cartModalConfirm').off('click').on('click', async function () {
+            const qty = Math.max(1, parseInt($('#cartModalQty').val() || 1, 10));
+            const token = getStoredToken();
+            if (!token) return;
+
+            const cart = await fetchCart();
+            const existing = cart.find(item => item.item_id == payload.item_id);
+            if (existing) {
+                existing.quantity = Number(existing.quantity || 0) + qty;
+            } else {
+                cart.push({
+                    item_id: payload.item_id,
+                    quantity: qty
+                });
+            }
+
+            const updatedCart = await saveCart(cart);
+            const updatedCount = updatedCart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            itemCount = updatedCount;
+            $('#itemCount').text(itemCount).css('display', itemCount > 0 ? 'block' : 'none');
+            $('#cartModalAlert').removeClass('d-none').text(`${payload.description} was added to your cart.`);
+            Swal.fire({
+                icon: 'success',
+                title: 'Added to cart successfully',
+                showConfirmButton: false,
+                timer: 1200,
+                position: 'center'
+            });
+            setTimeout(() => $('#addToCartModal').modal('hide'), 1000);
+        });
+        $('#addToCartModal').modal('show');
+    };
+
+    const addToCartFromCard = async function (button) {
         if (!requireLogin()) {
             return;
         }
@@ -573,36 +679,20 @@ const addToCartFromCard = async function (button) {
         const id = parseInt(button.data('id'), 10);
         const description = String(button.data('description') || '').trim();
         const stock = parseInt(button.data('stock'), 10) || 0;
+        const image = String(button.data('primary') || '');
+        const price = parseFloat(button.data('price')) || 0;
 
         if (stock <= 0) {
             Swal.fire('Out of Stock', 'This item is not available', 'warning');
             return;
         }
 
-        const token = getStoredToken();
-        if (!token) return;
+        showAddToCartModal({ item_id: id, description, price, image, stock });
+    };
 
-        const cart = await fetchCart();
-        const existing = cart.find(item => item.item_id == id);
-        if (existing) {
-            existing.quantity = Number(existing.quantity || 0) + 1;
-        } else {
-            cart.push({
-                item_id: id,
-                quantity: 1
-            });
-        }
-
-        const updatedCart = await saveCart(cart);
-        const updatedCount = updatedCart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-        itemCount = updatedCount;
-        $('#itemCount').text(itemCount).css('display', itemCount > 0 ? 'block' : 'none');
-        Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
-  };
-
-  $(document).on('click', '.add-to-cart-card', function () {
-    addToCartFromCard($(this));
-  });
+    $(document).on('click', '.add-to-cart-card', function () {
+        addToCartFromCard($(this));
+    });
 
     const requireCustomer = () => {
         if (!getStoredToken()) {

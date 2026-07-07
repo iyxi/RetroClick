@@ -7,6 +7,7 @@ const users = require('./routes/user');
 const orders = require('./routes/order');
 const cart = require('./routes/cart');
 const dashboard = require('./routes/dashboard');
+const reviews = require('./routes/review');
 // const media = require('./routes/media');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/v1', users);
 app.use('/api/v1', cart);
 app.use('/api/v1', orders);
 app.use('/api/v1', dashboard);
+app.use('/api/v1', reviews);
 // app.use('/api/v1', media);
 
 // Multer error logging middleware (diagnostic)

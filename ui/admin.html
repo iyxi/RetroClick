@@ -33,6 +33,7 @@
                 <button class="nav-item" data-tab="users"><i class="fas fa-users"></i> Users</button>
                 <button class="nav-item" data-tab="stock"><i class="fas fa-warehouse"></i> Stock</button>
                 <button class="nav-item" data-tab="sales"><i class="fas fa-chart-pie"></i> Sales</button>
+                <button class="nav-item" data-tab="reviews"><i class="fas fa-star"></i> Reviews</button>
                 <hr class="sidebar-divider">
                 <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
@@ -218,6 +219,29 @@
                             </thead>
                             <tbody>
                             </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reviews Tab -->
+                <div id="reviews" class="tab-content">
+                    <h2>Reviews Management</h2>
+                    <div class="table-container">
+                        <table id="reviewsTable" class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Item</th>
+                                    <th>User</th>
+                                    <th>Rating</th>
+                                    <th>Comment</th>
+                                    <th>Images</th>
+                                    <th>Date</th>
+                                    <th>Visible</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>

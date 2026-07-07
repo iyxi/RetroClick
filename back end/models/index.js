@@ -12,6 +12,8 @@ const CartItem = require('./cartItem');
 const OrderStatusHistory = require('./orderStatusHistory');
 const EmailNotification = require('./emailNotification');
 const Media = require('./media');
+const Review = require('./review');
+const ReviewImage = require('./reviewImage');
 
 // Initialize models
 const db = {};
@@ -165,12 +167,39 @@ db.EmailNotification.belongsTo(db.User, {
 
 // ========== MEDIA ==========
 db.Media = Media(sequelize, require('sequelize').DataTypes);
+db.Review = Review(sequelize, require('sequelize').DataTypes);
+db.ReviewImage = ReviewImage(sequelize, require('sequelize').DataTypes);
 db.User.hasMany(db.Media, {
     foreignKey: 'uploaded_by',
     onDelete: 'SET NULL'
 });
 db.Media.belongsTo(db.User, {
     foreignKey: 'uploaded_by'
+});
+
+// ========== REVIEWS ==========
+db.Item.hasMany(db.Review, {
+    foreignKey: 'item_id',
+    onDelete: 'CASCADE'
+});
+db.Review.belongsTo(db.Item, {
+    foreignKey: 'item_id'
+});
+
+db.Customer.hasMany(db.Review, {
+    foreignKey: 'customer_id',
+    onDelete: 'CASCADE'
+});
+db.Review.belongsTo(db.Customer, {
+    foreignKey: 'customer_id'
+});
+
+db.Review.hasMany(db.ReviewImage, {
+    foreignKey: 'review_id',
+    onDelete: 'CASCADE'
+});
+db.ReviewImage.belongsTo(db.Review, {
+    foreignKey: 'review_id'
 });
 
 db.sequelize = sequelize;

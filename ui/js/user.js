@@ -1,6 +1,13 @@
 $(document).ready(function () {
     const url = 'http://localhost:3000/'
 
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const getStoredUserId = () => {
         const rawUserId = sessionStorage.getItem('userId');
 
@@ -478,6 +485,8 @@ $(document).ready(function () {
                 ].filter(Boolean).join('<br>');
 
                 $('#profileSummary').html(summary || 'No profile details saved yet.');
+                // Load purchase history for this customer
+                loadPurchaseHistory();
             },
             error: function (error) {
                 console.error('Load profile error:', error);
@@ -485,6 +494,83 @@ $(document).ready(function () {
                     window.location.href = 'login.html';
                 }
             }
+        });
+
+        // Purchase history and review helpers
+        const renderOrderLine = (line) => {
+            const item = line.Item || {};
+            const img = item.img_path ? `${url}${String(item.img_path).replace(/^\/+/, '')}` : 'https://via.placeholder.com/80';
+            return `
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                    <img src="${img}" style="width:80px;height:60px;object-fit:cover;border-radius:6px" />
+                    <div style="flex:1">
+                        <div style="font-weight:700">${escapeHtml(item.description || item.camera_model || 'Item')}</div>
+                        <div style="font-size:0.9rem;color:#666">Qty: ${line.quantity || 1} • ₱${parseFloat(item.sell_price||0).toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary btn-leave-review" data-item-id="${item.item_id}" style="margin-right:6px">Leave Review</button>
+                        <button class="btn btn-sm btn-link view-reviews-btn" data-id="${item.item_id}">View Reviews</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        const loadPurchaseHistory = () => {
+            const token = getStoredToken();
+            if (!token) {
+                $('#purchaseHistory').html('<p class="text-muted">Please login to see purchases.</p>');
+                return;
+            }
+            $.ajax({ method: 'GET', url: `${url}api/v1/my/orders`, headers: { Authorization: `Bearer ${token}` }, dataType: 'json', success: function (data) {
+                const rows = data.rows || [];
+                if (!rows.length) { $('#purchaseHistory').html('<p class="text-muted">No purchases yet.</p>'); return; }
+                const html = rows.map(order => {
+                    const lines = (order.OrderLines || []).map(renderOrderLine).join('');
+                    return `<div style="border-bottom:1px solid #eee;padding:8px 0;margin-bottom:8px"><div style="font-weight:700">Order #${String(order.id).padStart(6,'0')} — ${order.status}</div><div style="margin-top:8px">${lines}</div></div>`;
+                }).join('');
+                $('#purchaseHistory').html(html);
+            }, error: function (err) { console.error('Failed to load purchases', err); $('#purchaseHistory').html('<p class="text-muted">Unable to load purchases.</p>'); } });
+        };
+
+        // Open reviews modal when user clicks leave review (from profile purchases)
+        $(document).on('click', '.btn-leave-review', function (e) {
+            e.preventDefault();
+            const itemId = $(this).data('item-id');
+            $('#reviewItemId').val(itemId);
+            $('#reviewsList').html('');
+            $('#reviewForm')[0].reset();
+            const token = getStoredToken();
+            if (!token) { Swal.fire('Please login to leave a review'); return; }
+            // Check eligibility
+            $.ajax({ url: `${url}api/v1/reviews/eligible?item_id=${itemId}`, headers: { Authorization: `Bearer ${token}` }, success: function (resp) {
+                if (resp && resp.eligible) {
+                    $('#reviewFormContainer').show();
+                } else if (resp && resp.alreadyReviewed) {
+                    $('#reviewFormContainer').hide();
+                    $('#reviewsList').html('<p>You have already reviewed this item.</p>');
+                } else {
+                    $('#reviewFormContainer').hide();
+                    $('#reviewsList').html('<p>You can only review items you purchased and that have been completed.</p>');
+                }
+                // load existing reviews for reference
+                $.ajax({ url: `${url}api/v1/public/items/${itemId}/reviews`, success: function (data) {
+                    const rows = data.rows || [];
+                    if (!rows.length) { /* nothing */ } else {
+                        const html = rows.map(r => `<div style="margin-bottom:0.5rem"><strong>${escapeHtml((r.Customer?.fname||'')+' '+(r.Customer?.lname||'')).trim()||'Customer'}</strong> — ${'★'.repeat(Math.round(r.rating||0))}<div>${escapeHtml(r.comment||'')}</div></div>`).join('');
+                        $('#reviewsList').append(html);
+                    }
+                    $('#reviewsModal').modal('show');
+                }, error: function () { $('#reviewsModal').modal('show'); } });
+            }, error: function () { Swal.fire('Error checking eligibility'); } });
+        });
+
+        // Submit review from profile modal
+        $('#reviewForm').on('submit', function (e) {
+            e.preventDefault();
+            const token = getStoredToken();
+            if (!token) { Swal.fire('Please login'); return; }
+            const form = new FormData(this);
+            $.ajax({ url: `${url}api/v1/reviews`, method: 'POST', data: form, headers: { Authorization: `Bearer ${token}` }, processData: false, contentType: false, success: function () { Swal.fire('Review submitted'); $('#reviewsModal').modal('hide'); loadPurchaseHistory(); }, error: function (err) { Swal.fire('Error', err.responseJSON?.message || 'Could not submit review', 'error'); } });
         });
     });
 })

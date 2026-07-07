@@ -298,6 +298,44 @@ exports.getAllOrders = async (req, res) => {
     }
 };
 
+// Get orders for current user (customer)
+exports.getUserOrders = async (req, res) => {
+    try {
+        const userId = req.user?.id || req.body?.user?.id;
+        if (!userId) return res.status(401).json({ success: false, message: 'Login required' });
+
+        const customer = await Customer.findOne({ where: { user_id: userId } });
+        if (!customer) return res.status(200).json({ success: true, rows: [] });
+
+        const orders = await Order.findAll({
+            where: { customer_id: customer.customer_id },
+            include: [
+                { model: OrderLine, include: [{ model: Item, attributes: ['item_id', 'description', 'sell_price', 'img_path'] }] }
+            ],
+            order: [['orderinfo_id', 'DESC']]
+        });
+
+        const mapped = orders.map((order) => {
+            const orderLines = Array.isArray(order.OrderLines) ? order.OrderLines : [];
+            const totals = calculateOrderTotals(orderLines, order.shipping);
+            return {
+                id: order.orderinfo_id,
+                total: totals.total,
+                subtotal: totals.subtotal,
+                shipping: totals.shipping,
+                status: order.status,
+                created_at: order.date_placed,
+                OrderLines: orderLines
+            };
+        });
+
+        return res.status(200).json({ success: true, rows: mapped });
+    } catch (error) {
+        console.log('getUserOrders error:', error.message);
+        return res.status(500).json({ error: 'Error fetching user orders', details: error.message });
+    }
+};
+
 // Get single order
 exports.getSingleOrder = async (req, res) => {
     try {
