@@ -4,6 +4,8 @@ const OrderLine = db.OrderLine;
 const Item = db.Item;
 const User = db.User;
 const Customer = db.Customer;
+const Cart = db.Cart;
+const CartItem = db.CartItem;
 const EmailNotification = db.EmailNotification;
 const sendEmail = require('../utils/sendEmail');
 
@@ -392,6 +394,27 @@ exports.createOrder = async (req, res) => {
                 quantity: item.quantity,
                 unit_price: item.price
             });
+        }
+
+        // Remove purchased items from the active customer cart so unselected items remain available.
+        if (Array.isArray(cart) && cart.length > 0) {
+            const activeCart = await Cart.findOne({
+                where: {
+                    customer_id: customer.customer_id,
+                    status: 'active'
+                }
+            });
+            if (activeCart) {
+                const purchasedItemIds = cart.map((item) => Number(item.item_id)).filter((id) => id > 0);
+                if (purchasedItemIds.length > 0) {
+                    await CartItem.destroy({
+                        where: {
+                            cart_id: activeCart.cart_id,
+                            item_id: purchasedItemIds
+                        }
+                    });
+                }
+            }
         }
 
         const orderLines = await OrderLine.findAll({

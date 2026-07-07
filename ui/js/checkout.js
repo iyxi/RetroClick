@@ -4,13 +4,10 @@ $(document).ready(function () {
     let paymentMethod = 'COD';
     let currentStep = 1;
 
-    function getCart() {
-        let cart = localStorage.getItem('cart');
-        return cart ? JSON.parse(cart) : [];
-    }
+    let cartCache = [];
 
-    function getStoredToken() {
-        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+    const getStoredToken = () => {
+        const rawToken = sessionStorage.getItem('token');
         if (!rawToken) {
             return null;
         }
@@ -20,10 +17,75 @@ $(document).ready(function () {
         } catch (error) {
             return rawToken;
         }
-    }
+    };
+
+    const getStoredUserRole = () => {
+        const rawRole = sessionStorage.getItem('userRole');
+        if (!rawRole) return '';
+
+        try {
+            return JSON.parse(rawRole);
+        } catch (error) {
+            return rawRole;
+        }
+    };
+
+    const isCustomerUser = () => {
+        const role = String(getStoredUserRole() || '').toLowerCase();
+        return !role || role === 'customer';
+    };
+
+    const authHeaders = () => {
+        const token = getStoredToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const getCart = () => cartCache;
+
+    const setCartCache = (items) => {
+        cartCache = Array.isArray(items) ? items.map(item => ({
+            ...item,
+            selected: item.selected !== false
+        })) : [];
+    };
+
+    const requireCustomer = () => {
+        if (!getStoredToken()) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        if (!isCustomerUser()) {
+            window.location.href = 'admin.html';
+            return false;
+        }
+        return true;
+    };
+
+    const fetchCart = () => {
+        const token = getStoredToken();
+        if (!token) {
+            setCartCache([]);
+            return Promise.resolve([]);
+        }
+
+        return $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/cart`,
+            headers: authHeaders(),
+            dataType: 'json'
+        }).then((response) => {
+            const items = Array.isArray(response.cart) ? response.cart : [];
+            setCartCache(items);
+            return items;
+        }).catch((error) => {
+            console.warn('Unable to load cart from server', error);
+            setCartCache([]);
+            return [];
+        });
+    };
 
     function getStoredUserEmail() {
-        const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+        const rawEmail = sessionStorage.getItem('userEmail');
         if (!rawEmail) {
             return '';
         }
@@ -574,9 +636,10 @@ $(document).ready(function () {
                     confirmButtonText: 'Back to Home',
                     allowOutsideClick: false
                 }).then(() => {
-                    let updatedCart = getCart().filter(i => !i.selected);
-                    localStorage.setItem('cart', JSON.stringify(updatedCart));
-                    window.location.href = 'home.html';
+                    // The backend removes purchased items from the active cart, so refresh state before redirecting.
+                    fetchCart().finally(() => {
+                        window.location.href = 'home.html';
+                    });
                 });
             },
             error: function (error) {
@@ -591,37 +654,28 @@ $(document).ready(function () {
         });
     }
 
-    // Initial render
+    const initializeCheckout = () => {
+        if (!requireCustomer()) return;
+
+        fetchCart().then((cart) => {
+            const selectedItems = cart.filter(i => i.selected);
+            if (selectedItems.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Items Selected',
+                    text: 'Please go back to your cart and select items to checkout.',
+                    showConfirmButton: true
+                }).then(() => {
+                    window.location.href = 'cart.html';
+                });
+                return;
+            }
+            renderOrderSummary();
+            updateStepUI();
+        });
+    };
+
     loadSharedHeader(() => {
-        renderOrderSummary();
-        
-        // Check if user is logged in
-        const token = getStoredToken();
-        if (!token) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Login Required',
-                text: 'You must be logged in to checkout.',
-                showConfirmButton: true
-            }).then(() => {
-                window.location.href = 'login.html';
-            });
-        }
-
-        // Check if cart has selected items
-        const cart = getCart();
-        const selectedItems = cart.filter(i => i.selected);
-        if (selectedItems.length === 0) {
-            Swal.fire({
-                icon: 'info',
-                title: 'No Items Selected',
-                text: 'Please go back to your cart and select items to checkout.',
-                showConfirmButton: true
-            }).then(() => {
-                window.location.href = 'cart.html';
-            });
-        }
-
-        updateStepUI();
+        initializeCheckout();
     });
 });

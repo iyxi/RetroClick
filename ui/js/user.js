@@ -15,13 +15,23 @@ $(document).ready(function () {
         }
     }
 
-    const persistAuthState = (key, value) => {
-        sessionStorage.setItem(key, JSON.stringify(value));
-        localStorage.setItem(key, JSON.stringify(value));
+    const clearStaleLocalAuth = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
     };
 
+    const persistAuthState = (key, value) => {
+        clearStaleLocalAuth();
+        sessionStorage.setItem(key, JSON.stringify(value));
+    };
+
+    clearStaleLocalAuth();
+
     const getStoredToken = () => {
-        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const rawToken = sessionStorage.getItem('token');
         if (!rawToken) return null;
         try {
             return JSON.parse(rawToken);
@@ -31,7 +41,7 @@ $(document).ready(function () {
     };
 
     const getStoredUserRole = () => {
-        const rawRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+        const rawRole = sessionStorage.getItem('userRole');
         if (!rawRole) return '';
         try {
             return JSON.parse(rawRole);
@@ -41,7 +51,7 @@ $(document).ready(function () {
     };
 
     const getStoredUserEmail = () => {
-        const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+        const rawEmail = sessionStorage.getItem('userEmail');
         if (!rawEmail) return '';
         try {
             return JSON.parse(rawEmail);
@@ -51,7 +61,7 @@ $(document).ready(function () {
     };
 
     const getStoredUserName = () => {
-        const rawName = sessionStorage.getItem('userName') || localStorage.getItem('userName');
+        const rawName = sessionStorage.getItem('userName');
         if (!rawName) return '';
         try {
             return JSON.parse(rawName);

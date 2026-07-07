@@ -35,9 +35,18 @@ const sharedHeaderMarkup = `
 </nav>
 `;
 
+const clearStaleLocalAuth = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('userEmail');
+};
+
 const setHeaderState = () => {
-  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-  const userRoleRaw = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+  clearStaleLocalAuth();
+  const token = sessionStorage.getItem('token');
+  const userRoleRaw = sessionStorage.getItem('userRole');
   let userRole = '';
   try {
     userRole = userRoleRaw ? JSON.parse(userRoleRaw) : '';

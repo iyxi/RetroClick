@@ -5,6 +5,7 @@ const path = require('path');
 const items = require('./routes/item');
 const users = require('./routes/user');
 const orders = require('./routes/order');
+const cart = require('./routes/cart');
 const dashboard = require('./routes/dashboard');
 // const media = require('./routes/media');
 
@@ -19,6 +20,7 @@ app.use(express.static(path.join(__dirname, '../ui')));
 
 app.use('/api/v1', items);
 app.use('/api/v1', users);
+app.use('/api/v1', cart);
 app.use('/api/v1', orders);
 app.use('/api/v1', dashboard);
 // app.use('/api/v1', media);

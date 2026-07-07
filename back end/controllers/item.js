@@ -111,15 +111,46 @@ const parseNumber = (value, fallback = undefined) => {
     return Number.isNaN(number) ? fallback : number;
 };
 
-const normalizeItemImages = (item) => {
-    const raw = item && typeof item.toJSON === 'function' ? item.toJSON() : item;
-    let images = Array.isArray(raw.ItemImages) ? raw.ItemImages.slice() : [];
+const normalizeImagePath = (value) => {
+    if (!value) return value;
+    let normalized = String(value).replace(/\\/g, '/').trim();
 
-    if (!images.length && raw.img_path) {
-        images.push({ image_path: raw.img_path, is_primary: true, sort_order: 0 });
+    const imagesIndex = normalized.toLowerCase().indexOf('images/');
+    if (imagesIndex !== -1) {
+        normalized = normalized.slice(imagesIndex);
+    } else {
+        normalized = normalized.replace(/^[A-Za-z]:\//, '').replace(/^\/+/, '');
     }
 
-    images = images.slice().sort((a, b) => {
+    return normalized;
+};
+
+const normalizeItemImages = (item) => {
+    const raw = item && typeof item.toJSON === 'function' ? item.toJSON() : item;
+    const primaryImagePath = raw.img_path ? normalizeImagePath(raw.img_path) : null;
+    const images = Array.isArray(raw.ItemImages) ? raw.ItemImages.slice() : [];
+
+    const normalized = images.map((image) => ({
+        ...image,
+        image_path: normalizeImagePath(image?.image_path)
+    }));
+
+    const paths = new Set();
+    const orderedImages = [];
+
+    if (primaryImagePath) {
+        paths.add(primaryImagePath);
+        orderedImages.push({ image_path: primaryImagePath, is_primary: true, sort_order: -1 });
+    }
+
+    normalized.forEach((image) => {
+        if (!image || !image.image_path) return;
+        if (paths.has(image.image_path)) return;
+        paths.add(image.image_path);
+        orderedImages.push(image);
+    });
+
+    orderedImages.sort((a, b) => {
         const orderA = Number.isFinite(a?.sort_order) ? a.sort_order : 0;
         const orderB = Number.isFinite(b?.sort_order) ? b.sort_order : 0;
         if (orderA !== orderB) return orderA - orderB;
@@ -129,7 +160,7 @@ const normalizeItemImages = (item) => {
         return (a?.image_id || 0) - (b?.image_id || 0);
     });
 
-    raw.ItemImages = images;
+    raw.ItemImages = orderedImages;
     return raw;
 };
 

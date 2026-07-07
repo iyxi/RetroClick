@@ -1,25 +1,10 @@
 $(document).ready(function () {
-    const url = 'http://localhost:3000/'
-    function getCart() {
-        let cart = localStorage.getItem('cart');
-        cart = cart ? JSON.parse(cart) : [];
-        let modified = false;
-        cart.forEach(item => {
-            if (typeof item.selected === 'undefined') {
-                item.selected = true;
-                modified = true;
-            }
-        });
-        if (modified) saveCart(cart);
-        return cart;
-    }
-
-    function saveCart(cart) {
-        localStorage.setItem('cart', JSON.stringify(cart));
-    }
+    const url = 'http://localhost:3000/';
+    let cartCache = [];
+    let cartLoaded = false;
 
     const getStoredToken = () => {
-        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const rawToken = sessionStorage.getItem('token');
         if (!rawToken) return null;
 
         try {
@@ -29,8 +14,120 @@ $(document).ready(function () {
         }
     };
 
+    const getStoredUserRole = () => {
+        const rawRole = sessionStorage.getItem('userRole');
+        if (!rawRole) return '';
+
+        try {
+            return JSON.parse(rawRole);
+        } catch (error) {
+            return rawRole;
+        }
+    };
+
+    const authHeaders = () => {
+        const token = getStoredToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const isCustomerUser = () => {
+        const role = String(getStoredUserRole() || '').toLowerCase();
+        return !role || role === 'customer';
+    };
+
+    const requireCustomer = () => {
+        if (!getStoredToken()) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'You must be logged in to access your cart.',
+                showConfirmButton: true
+            }).then(() => window.location.href = 'login.html');
+            return false;
+        }
+
+        if (!isCustomerUser()) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'Admin access is not allowed on the customer cart page.',
+                showConfirmButton: true
+            }).then(() => window.location.href = 'admin.html');
+            return false;
+        }
+
+        return true;
+    };
+
+    const setCartCache = (items) => {
+        cartCache = Array.isArray(items) ? items.map(item => ({
+            ...item,
+            selected: item.selected !== false
+        })) : [];
+        cartLoaded = true;
+    };
+
+    const getCart = () => cartCache;
+
+    const fetchCart = () => {
+        const token = getStoredToken();
+        if (!token) {
+            setCartCache([]);
+            return Promise.resolve([]);
+        }
+
+        return $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/cart`,
+            headers: authHeaders(),
+            dataType: 'json'
+        }).then((response) => {
+            const items = Array.isArray(response.cart) ? response.cart : [];
+            setCartCache(items);
+            return items;
+        }).catch((error) => {
+            console.warn('Unable to load cart from server', error);
+            setCartCache([]);
+            return [];
+        });
+    };
+
+    const saveCart = (cart) => {
+        const selectedByItemId = new Map((cart || []).map(item => [Number(item.item_id), item.selected !== false]));
+        setCartCache(cart);
+        const token = getStoredToken();
+        if (!token) {
+            return Promise.resolve(cart);
+        }
+
+        const payload = {
+            items: cart.map(item => ({
+                item_id: Number(item.item_id),
+                quantity: Number(item.quantity || 0)
+            }))
+        };
+
+        return $.ajax({
+            method: 'PUT',
+            url: `${url}api/v1/cart`,
+            headers: authHeaders(),
+            data: JSON.stringify(payload),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json'
+        }).then((response) => {
+            const items = Array.isArray(response.cart) ? response.cart : cart;
+            const mergedItems = Array.isArray(items) ? items.map(item => ({
+                ...item,
+                selected: selectedByItemId.get(Number(item.item_id)) !== false
+            })) : items;
+            setCartCache(mergedItems);
+            return mergedItems;
+        }).catch((error) => {
+            console.warn('Unable to save cart to server', error);
+            return cart;
+        });
+    };
+
     const isLoggedIn = () => {
-        return !!getStoredToken();
+        return !!getStoredToken() && isCustomerUser();
     };
 
     function renderCart() {
@@ -194,8 +291,7 @@ $(document).ready(function () {
         let idx = $(this).data('idx');
         let cart = getCart();
         cart.splice(idx, 1);
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     // handle select all
@@ -203,8 +299,7 @@ $(document).ready(function () {
         let checked = $(this).is(':checked');
         let cart = getCart();
         cart.forEach(item => item.selected = checked);
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     // handle single select checkbox
@@ -212,8 +307,7 @@ $(document).ready(function () {
         let idx = $(this).data('idx');
         let cart = getCart();
         if (cart[idx]) cart[idx].selected = $(this).is(':checked');
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     // qty stepper handlers
@@ -222,8 +316,7 @@ $(document).ready(function () {
         let cart = getCart();
         if (!cart[idx]) return;
         cart[idx].quantity = Math.max(1, (parseInt(cart[idx].quantity, 10) || 1) - 1);
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     $('#cartTable').on('click', '.qty-plus', function () {
@@ -231,8 +324,7 @@ $(document).ready(function () {
         let cart = getCart();
         if (!cart[idx]) return;
         cart[idx].quantity = (parseInt(cart[idx].quantity, 10) || 1) + 1;
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     // thumbnail arrow click (demo only: rotate between images if item.images array exists)
@@ -257,8 +349,7 @@ $(document).ready(function () {
         let cart = getCart();
         if (!cart[idx]) return;
         cart[idx].quantity = Math.max(1, val);
-        saveCart(cart);
-        renderCart();
+        saveCart(cart).then(renderCart);
     });
 
     // voucher handling
@@ -281,6 +372,9 @@ $(document).ready(function () {
     });
 
     loadSharedHeader();
+    if (requireCustomer()) {
+        fetchCart().then(renderCart);
+    }
 
     $('#checkoutBtn').on('click', function () {
         let cart = getCart()

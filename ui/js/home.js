@@ -20,12 +20,42 @@ $(document).ready(function () {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
+    const normalizeImagePath = (value) => {
+      if (!value) return value;
+      let normalized = String(value).replace(/\\/g, '/').trim();
+      const imagesIndex = normalized.toLowerCase().indexOf('images/');
+      if (imagesIndex !== -1) {
+        normalized = normalized.slice(imagesIndex);
+      } else {
+        normalized = normalized.replace(/^[A-Za-z]:\//, '').replace(/^\/+/, '');
+      }
+      return normalized;
+    };
+
     const normalizeImageList = (value) => {
       const images = Array.isArray(value?.ItemImages) ? value.ItemImages.slice() : [];
-      if (!images.length && value?.img_path) {
-        images.push({ image_path: value.img_path, is_primary: true, sort_order: 0 });
+      const primaryImagePath = value?.img_path ? normalizeImagePath(value.img_path) : null;
+      const normalizedImages = images.map((image) => ({
+        ...image,
+        image_path: normalizeImagePath(image?.image_path)
+      }));
+
+      const orderedImages = [];
+      const seenPaths = new Set();
+
+      if (primaryImagePath) {
+        seenPaths.add(primaryImagePath);
+        orderedImages.push({ image_path: primaryImagePath, is_primary: true, sort_order: -1 });
       }
-      return images.slice().sort((a, b) => {
+
+      normalizedImages.forEach((image) => {
+        if (!image || !image.image_path) return;
+        if (seenPaths.has(image.image_path)) return;
+        seenPaths.add(image.image_path);
+        orderedImages.push(image);
+      });
+
+      return orderedImages.slice().sort((a, b) => {
         const orderA = Number.isFinite(a?.sort_order) ? a.sort_order : 0;
         const orderB = Number.isFinite(b?.sort_order) ? b.sort_order : 0;
         if (orderA !== orderB) return orderA - orderB;
@@ -372,17 +402,10 @@ $(document).ready(function () {
     };
     window.filterProducts = window.filterByBrand;
 
-    const getCart = () => {
-        let cart = localStorage.getItem('cart');
-        return cart ? JSON.parse(cart) : [];
-    }
-
-    const saveCart = cart => {
-        localStorage.setItem('cart', JSON.stringify(cart));
-    }
+      let cartCache = [];
 
     const getStoredToken = () => {
-        const rawToken = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const rawToken = sessionStorage.getItem('token');
         if (!rawToken) return null;
 
         try {
@@ -390,6 +413,85 @@ $(document).ready(function () {
         } catch (error) {
             return rawToken;
         }
+    };
+
+    const getStoredUserRole = () => {
+        const rawRole = sessionStorage.getItem('userRole');
+        if (!rawRole) return '';
+
+        try {
+            return JSON.parse(rawRole);
+        } catch (error) {
+            return rawRole;
+        }
+    };
+
+    const isCustomerUser = () => {
+        const role = String(getStoredUserRole() || '').toLowerCase();
+        return !role || role === 'customer';
+    };
+
+    const authHeaders = () => {
+        const token = getStoredToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const getCart = () => cartCache;
+
+    const setCartCache = (items) => {
+        cartCache = Array.isArray(items) ? items.map((item) => ({
+            ...item,
+            selected: item.selected !== false
+        })) : [];
+    };
+
+    const fetchCart = () => {
+        const token = getStoredToken();
+        if (!token) return Promise.resolve([]);
+
+        return $.ajax({
+            method: 'GET',
+            url: `${url}api/v1/cart`,
+            headers: authHeaders(),
+            dataType: 'json'
+        }).then((response) => {
+            const items = Array.isArray(response.cart) ? response.cart : [];
+            setCartCache(items);
+            return items;
+        }).catch((error) => {
+            console.warn('Unable to load cart from server', error);
+            setCartCache([]);
+            return [];
+        });
+    };
+
+    const saveCart = (cart) => {
+        setCartCache(cart);
+        const token = getStoredToken();
+        if (!token) return Promise.resolve(cart);
+
+        const payload = {
+            items: cart.map((item) => ({
+                item_id: Number(item.item_id),
+                quantity: Number(item.quantity || 0)
+            }))
+        };
+
+        return $.ajax({
+            method: 'PUT',
+            url: `${url}api/v1/cart`,
+            headers: authHeaders(),
+            data: JSON.stringify(payload),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json'
+        }).then((response) => {
+            const items = Array.isArray(response.cart) ? response.cart : cart;
+            setCartCache(items);
+            return items;
+        }).catch((error) => {
+            console.warn('Unable to save cart to server', error);
+            return cart;
+        });
     };
 
     const isLoggedIn = () => {
@@ -463,41 +565,38 @@ $(document).ready(function () {
         }
     });
 
-  const addToCartFromCard = function (button) {
+const addToCartFromCard = async function (button) {
         if (!requireLogin()) {
             return;
         }
 
-    const id = parseInt(button.data('id'), 10);
-    const description = String(button.data('description') || '').trim();
-    const price = parseFloat(button.data('price')) || 0;
-    const stock = parseInt(button.data('stock'), 10) || 0;
-    const image = button.data('primary') ? `${url}${encodeURI(button.data('primary'))}` : 'https://via.placeholder.com/400x250?text=No+Image';
+        const id = parseInt(button.data('id'), 10);
+        const description = String(button.data('description') || '').trim();
+        const stock = parseInt(button.data('stock'), 10) || 0;
 
-    if (stock <= 0) {
-      Swal.fire('Out of Stock', 'This item is not available', 'warning');
+        if (stock <= 0) {
+            Swal.fire('Out of Stock', 'This item is not available', 'warning');
             return;
         }
 
-        let cart = getCart();
+        const token = getStoredToken();
+        if (!token) return;
 
-        let existing = cart.find(item => item.item_id == id);
+        const cart = await fetchCart();
+        const existing = cart.find(item => item.item_id == id);
         if (existing) {
-      existing.quantity += 1;
+            existing.quantity = Number(existing.quantity || 0) + 1;
         } else {
             cart.push({
                 item_id: id,
-                description: description,
-        price: price,
-                image: image,
-                stock: stock,
-        quantity: 1
+                quantity: 1
             });
         }
-        saveCart(cart);
 
-        itemCount++;
-        $('#itemCount').text(itemCount).css('display', 'block');
+        const updatedCart = await saveCart(cart);
+        const updatedCount = updatedCart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+        itemCount = updatedCount;
+        $('#itemCount').text(itemCount).css('display', itemCount > 0 ? 'block' : 'none');
         Swal.fire('Added to Cart', `${description} was added to your cart.`, 'success');
   };
 
@@ -505,6 +604,27 @@ $(document).ready(function () {
     addToCartFromCard($(this));
   });
 
+    const requireCustomer = () => {
+        if (!getStoredToken()) {
+            return false;
+        }
+        return isCustomerUser();
+    };
+
+    const refreshCartCount = () => {
+        if (!getStoredToken() || !isCustomerUser()) {
+            itemCount = 0;
+            $('#itemCount').text('0').css('display', 'none');
+            return;
+        }
+
+        fetchCart().then((items) => {
+            itemCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            $('#itemCount').text(itemCount).css('display', itemCount > 0 ? 'block' : 'none');
+        });
+    };
+
     loadSharedHeader();
+    refreshCartCount();
 
 })
