@@ -1,6 +1,5 @@
-/node_modules/
-# production
-# misc
-/config/.env
-/.env
-/images
+node_modules/
+
+.env
+.env.*
+!.env.example

@@ -179,9 +179,7 @@ $(document).ready(function () {
 
         var data = $('#iform')[0];
         let formData = new FormData(data);
-        // formData.append("_method", "PUT")
         $.ajax({
-            // method: "POST",
             method: "PUT",
             url: `${url}/api/v1/items/${id}`,
             data: formData,
