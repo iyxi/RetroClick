@@ -1347,8 +1347,8 @@ textarea:focus {
   overflow: hidden;
   transition: transform .35s var(--ease), box-shadow .35s var(--ease);
   position: relative;
-  display: grid;
-  grid-template-rows: 260px auto;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 420px;
   border-radius: 1.25rem;
@@ -1387,6 +1387,7 @@ textarea:focus {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .product-image::after {
@@ -1460,12 +1461,8 @@ textarea:focus {
   gap: 0.85rem;
   flex: 1;
   min-height: 0;
-}
-
-.product-brand,
-.product-price,
-.footer-section h5 {
-  color: var(--bordeaux) !important;
+  position: relative;
+  z-index: 1;
 }
 
 .product-brand,
@@ -1581,6 +1578,52 @@ textarea:focus {
 .product-actions .view-reviews-btn:hover {
   background: rgba(116, 48, 20, 0.08) !important;
   color: var(--bordeaux) !important;
+}
+
+.purchase-history-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(116, 48, 20, 0.08);
+}
+
+.purchase-history-line img {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.purchase-history-main {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.purchase-history-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.purchase-history-meta {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.purchase-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 180px;
+}
+
+.purchase-history-actions .btn {
+  white-space: nowrap;
 }
 
 /* optional corner badge — apply class="badge-corner badge-popular|badge-new|badge-pro"

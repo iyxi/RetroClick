@@ -40,12 +40,35 @@ $(document).ready(function () {
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
+    const normalizeImagePath = (value) => {
+        if (!value) return '';
+        let path = String(value).trim();
+        if (/^(https?:)?\/\//i.test(path) || /^data:/i.test(path)) {
+            return path;
+        }
+        path = path.replace(/\\/g, '/').trim();
+        const index = path.toLowerCase().indexOf('images/');
+        if (index !== -1) {
+            path = path.slice(index);
+        } else {
+            path = path.replace(/^[A-Za-z]:\//, '').replace(/^\/+/, '');
+        }
+        if (!path) return '';
+        return `${url}${encodeURI(path)}`;
+    };
+
+    const getCartItemImageUrl = (value) => {
+        const imageUrl = normalizeImagePath(value);
+        return imageUrl || 'https://via.placeholder.com/64?text=No+Image';
+    };
+
     const getCart = () => cartCache;
 
     const setCartCache = (items) => {
         cartCache = Array.isArray(items) ? items.map(item => ({
             ...item,
-            selected: item.selected !== false
+            selected: item.selected !== false,
+            image: getCartItemImageUrl(item?.image || item?.img_path || '')
         })) : [];
     };
 
@@ -278,7 +301,7 @@ $(document).ready(function () {
                 html += `
                     <div class="item-cell" style="margin-bottom:.85rem;">
                         <div class="item-thumb">
-                            <img src="${item.image}" alt="${item.description}" style="width:60px; height:60px; object-fit:cover; border-radius:6px;">
+                            <img src="${getCartItemImageUrl(item.image || item.img_path || '')}" alt="${item.description}" style="width:60px; height:60px; object-fit:cover; border-radius:6px;">
                         </div>
                         <div style="flex:1;">
                             <div class="item-cell-name">${item.description}</div>

@@ -30,6 +30,28 @@ $(document).ready(function () {
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
+    const normalizeImagePath = (value) => {
+        if (!value) return '';
+        let path = String(value).trim();
+        if (/^(https?:)?\/\//i.test(path) || /^data:/i.test(path)) {
+            return path;
+        }
+        path = path.replace(/\\/g, '/').trim();
+        const index = path.toLowerCase().indexOf('images/');
+        if (index !== -1) {
+            path = path.slice(index);
+        } else {
+            path = path.replace(/^[A-Za-z]:\//, '').replace(/^\/+/, '');
+        }
+        if (!path) return '';
+        return `${url}${encodeURI(path)}`;
+    };
+
+    const getCartItemImageUrl = (value) => {
+        const imageUrl = normalizeImagePath(value);
+        return imageUrl || 'https://via.placeholder.com/64?text=No+Image';
+    };
+
     const isCustomerUser = () => {
         const role = String(getStoredUserRole() || '').toLowerCase();
         return !role || role === 'customer';
@@ -57,11 +79,17 @@ $(document).ready(function () {
         return true;
     };
 
-    const setCartCache = (items) => {
-        cartCache = Array.isArray(items) ? items.map(item => ({
+    const normalizeCartItem = (item) => {
+        const imageValue = item?.image || item?.img_path || '';
+        return {
             ...item,
-            selected: item.selected !== false
-        })) : [];
+            selected: item.selected !== false,
+            image: getCartItemImageUrl(imageValue)
+        };
+    };
+
+    const setCartCache = (items) => {
+        cartCache = Array.isArray(items) ? items.map(normalizeCartItem) : [];
         cartLoaded = true;
     };
 
@@ -180,7 +208,7 @@ $(document).ready(function () {
                     <td><input type="checkbox" class="select-item" data-idx="${idx}" ${item.selected ? 'checked' : ''}></td>
                     <td>
                         <div class="thumb-wrap" style="position:relative; display:inline-block;">
-                            <img src="${item.image}" width="64" height="64" style="object-fit:cover;border-radius:6px; display:block;" alt="thumb">
+                            <img src="${getCartItemImageUrl(item.image)}" width="64" height="64" style="object-fit:cover;border-radius:6px; display:block;" alt="thumb">
                             <button class="thumb-arrow left" data-idx="${idx}" style="position:absolute; left:-6px; top:50%; transform:translateY(-50%); border-radius:50%; width:26px; height:26px; border:0; background:rgba(0,0,0,0.06);">‹</button>
                             <button class="thumb-arrow right" data-idx="${idx}" style="position:absolute; right:-6px; top:50%; transform:translateY(-50%); border-radius:50%; width:26px; height:26px; border:0; background:rgba(0,0,0,0.06);">›</button>
                         </div>

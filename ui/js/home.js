@@ -99,6 +99,7 @@ $(document).ready(function () {
       const cartButtonLabel = stockQty > 0 ? 'Add to Cart' : 'Out of Stock';
       const reviewCount = Array.isArray(value.Reviews) ? value.Reviews.length : 0;
       const avgRating = reviewCount ? value.Reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviewCount : 0;
+      const primaryImageUrl = primaryImage ? `${url}${encodeURI(primaryImage)}` : '';
 
       return `
         <div class="col-12 col-md-6 col-lg-6 mb-4">
@@ -124,7 +125,7 @@ $(document).ready(function () {
                   data-description="${escapeHtml(value.description)}"
                   data-price="${value.sell_price}"
                   data-stock="${stockQty}"
-                  data-primary="${primaryImage || ''}">
+                  data-primary="${primaryImageUrl}">
                   ${cartButtonLabel}
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary view-reviews-btn" data-id="${value.item_id}">View Reviews</button>
@@ -631,8 +632,18 @@ $(document).ready(function () {
         }
     });
 
+const normalizePrimaryImageUrl = (image) => {
+        if (!image) return '';
+        const lower = String(image).toLowerCase();
+        const idx = lower.indexOf('images/');
+        if (idx !== -1) {
+            return `${url}${encodeURI(image.slice(idx))}`;
+        }
+        return image;
+    };
+
 const showAddToCartModal = (payload) => {
-        const image = payload.image || 'https://via.placeholder.com/120x90?text=No+Image';
+        const image = normalizePrimaryImageUrl(payload.image) || 'https://via.placeholder.com/120x90?text=No+Image';
         $('#cartModalImage').attr('src', image);
         $('#cartModalDesc').text(payload.description || 'Item');
         $('#cartModalPrice').text(`₱${parseFloat(payload.price || 0).toFixed(2)}`);

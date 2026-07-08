@@ -497,19 +497,21 @@ $(document).ready(function () {
         });
 
         // Purchase history and review helpers
-        const renderOrderLine = (line) => {
+        const renderOrderLine = (line, orderStatus) => {
             const item = line.Item || {};
             const img = item.img_path ? `${url}${String(item.img_path).replace(/^\/+/, '')}` : 'https://via.placeholder.com/80';
+            const titleText = item.camera_model || item.description || 'Item';
+            const showLeaveReview = String(orderStatus || '').toLowerCase() === 'completed';
             return `
-                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-                    <img src="${img}" style="width:80px;height:60px;object-fit:cover;border-radius:6px" />
-                    <div style="flex:1">
-                        <div style="font-weight:700">${escapeHtml(item.description || item.camera_model || 'Item')}</div>
-                        <div style="font-size:0.9rem;color:#666">Qty: ${line.quantity || 1} • ₱${parseFloat(item.sell_price||0).toFixed(2)}</div>
+                <div class="purchase-history-line">
+                    <img src="${img}" alt="${escapeHtml(titleText)}" />
+                    <div class="purchase-history-main">
+                        <div class="purchase-history-title">${escapeHtml(titleText)}</div>
+                        <div class="purchase-history-meta">Qty: ${line.quantity || 1} • ₱${parseFloat(item.sell_price || 0).toFixed(2)}</div>
                     </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-primary btn-leave-review" data-item-id="${item.item_id}" style="margin-right:6px">Leave Review</button>
-                        <button class="btn btn-sm btn-link view-reviews-btn" data-id="${item.item_id}">View Reviews</button>
+                    <div class="purchase-history-actions">
+                        ${showLeaveReview ? `<button class="btn btn-sm btn-outline-primary btn-leave-review" data-item-id="${item.item_id}">Leave Review</button>` : ''}
+                        <button class="btn btn-sm btn-outline-secondary view-reviews-btn" data-id="${item.item_id}">View Reviews</button>
                     </div>
                 </div>
             `;
@@ -525,7 +527,7 @@ $(document).ready(function () {
                 const rows = data.rows || [];
                 if (!rows.length) { $('#purchaseHistory').html('<p class="text-muted">No purchases yet.</p>'); return; }
                 const html = rows.map(order => {
-                    const lines = (order.OrderLines || []).map(renderOrderLine).join('');
+                    const lines = (order.OrderLines || []).map(line => renderOrderLine(line, order.status)).join('');
                     return `<div style="border-bottom:1px solid #eee;padding:8px 0;margin-bottom:8px"><div style="font-weight:700">Order #${String(order.id).padStart(6,'0')} — ${order.status}</div><div style="margin-top:8px">${lines}</div></div>`;
                 }).join('');
                 $('#purchaseHistory').html(html);
@@ -562,6 +564,29 @@ $(document).ready(function () {
                     $('#reviewsModal').modal('show');
                 }, error: function () { $('#reviewsModal').modal('show'); } });
             }, error: function () { Swal.fire('Error checking eligibility'); } });
+        });
+
+        // Open reviews modal when user clicks View Reviews in purchase history
+        $(document).on('click', '.view-reviews-btn', function (e) {
+            e.preventDefault();
+            const itemId = $(this).data('id');
+            $('#reviewItemId').val(itemId);
+            $('#reviewForm')[0].reset();
+            $('#reviewFormContainer').hide();
+            $('#reviewsList').html('<p>Loading reviews...</p>');
+            $.ajax({ url: `${url}api/v1/public/items/${itemId}/reviews`, success: function (data) {
+                const rows = data.rows || [];
+                if (!rows.length) {
+                    $('#reviewsList').html('<p>No reviews yet.</p>');
+                } else {
+                    const html = rows.map(r => `<div style="margin-bottom:0.75rem"><div><strong>${escapeHtml((r.Customer?.fname||'')+' '+(r.Customer?.lname||'')).trim()||'Customer'}</strong> — ${'★'.repeat(Math.round(r.rating||0))}</div><div style="margin-top:0.25rem">${escapeHtml(r.comment||'')}</div></div>`).join('');
+                    $('#reviewsList').html(html);
+                }
+                $('#reviewsModal').modal('show');
+            }, error: function () {
+                $('#reviewsList').html('<p>Error loading reviews.</p>');
+                $('#reviewsModal').modal('show');
+            } });
         });
 
         // Submit review from profile modal
