@@ -597,8 +597,8 @@ exports.updateOrder = async (req, res) => {
             ]
         });
 
-        // Deduct inventory when order moves to Processing status
-        if (updateData.status === 'Processing' && previousStatus !== 'Processing' && Array.isArray(updatedOrder.OrderLines) && updatedOrder.OrderLines.length > 0) {
+        // Deduct inventory when order moves to Processing or Completed status from Pending
+        if ((updateData.status === 'Processing' || updateData.status === 'Completed') && previousStatus === 'Pending' && Array.isArray(updatedOrder.OrderLines) && updatedOrder.OrderLines.length > 0) {
             try {
                 await deductInventory(updatedOrder.OrderLines);
             } catch (inventoryError) {
@@ -625,7 +625,7 @@ exports.updateOrder = async (req, res) => {
             const receiptNo = `RCT-${formatReceiptOrderNo(id)}`;
 
             if (!existingReceipt) {
-                await db.Receipt.create({
+                await db.Receipt.create({ 
                     orderinfo_id: id,
                     payment_id: null,
                     receipt_no: receiptNo,
@@ -634,7 +634,7 @@ exports.updateOrder = async (req, res) => {
                 });
             }
 
-            const receiptPdf = buildReceiptPdf({
+            const receiptPdf = buildReceiptPdf({ 
                 orderId: id,
                 customerName: fullName,
                 address: deliveryAddress,
