@@ -7,6 +7,7 @@ const Customer = db.Customer;
 const Cart = db.Cart;
 const CartItem = db.CartItem;
 const EmailNotification = db.EmailNotification;
+const Stock = db.Stock;
 const sendEmail = require('../utils/sendEmail');
 
 const formatCurrency = (value) => `₱${Number(value || 0).toFixed(2)}`;
@@ -249,6 +250,36 @@ const sendOrderEmail = async ({ orderId, recipientEmail, recipientName, subject,
             status: 'Failed',
             errorMessage: emailError.message
         });
+    }
+};
+
+const deductInventory = async (orderLines = []) => {
+    try {
+        for (const orderLine of orderLines) {
+            const itemId = orderLine.item_id;
+            const quantityToDeduct = Number(orderLine.quantity || 0);
+
+            if (itemId && quantityToDeduct > 0) {
+                const stock = await Stock.findByPk(itemId);
+                
+                if (stock) {
+                    const currentQuantity = Number(stock.quantity || 0);
+                    const newQuantity = Math.max(0, currentQuantity - quantityToDeduct);
+                    
+                    await Stock.update(
+                        { quantity: newQuantity },
+                        { where: { item_id: itemId } }
+                    );
+                    
+                    console.log(`Stock deducted for item ${itemId}: ${quantityToDeduct} units deducted. New quantity: ${newQuantity}`);
+                } else {
+                    console.log(`Stock record not found for item ${itemId}`);
+                }
+            }
+        }
+    } catch (inventoryError) {
+        console.log('Inventory deduction error:', inventoryError.message);
+        throw inventoryError;
     }
 };
 
@@ -565,6 +596,15 @@ exports.updateOrder = async (req, res) => {
                 }
             ]
         });
+
+        // Deduct inventory when order moves to Processing status
+        if (updateData.status === 'Processing' && previousStatus !== 'Processing' && Array.isArray(updatedOrder.OrderLines) && updatedOrder.OrderLines.length > 0) {
+            try {
+                await deductInventory(updatedOrder.OrderLines);
+            } catch (inventoryError) {
+                console.log('Warning: Failed to deduct inventory, but order status updated:', inventoryError.message);
+            }
+        }
 
         if (status !== undefined && updateData.status && ['Processing', 'Completed', 'Cancelled'].includes(updateData.status) && previousStatus !== updateData.status) {
             const orderCustomer = updatedOrder.Customer;
