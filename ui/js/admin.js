@@ -960,14 +960,19 @@ $(document).ready(function() {
             cancelled: 'Cancelled'
         }[currentValue] || 'Pending';
         let selectedStatus = currentStatusLabel;
+        
+        // Determine which status options should be disabled
+        const disablePending = currentStatusLabel === 'Processing' || currentStatusLabel === 'Completed' || currentStatusLabel === 'Cancelled';
+        const disableCancelled = currentStatusLabel === 'Completed';
+        
         Swal.fire({
             title: 'Update Order Status',
             html: `
                 <div class="order-status-picker">
-                    <button type="button" class="order-status-option ${currentStatusLabel === 'Pending' ? 'is-active' : ''}" data-status="Pending">Pending</button>
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Pending' ? 'is-active' : ''} ${disablePending ? 'disabled' : ''}" data-status="Pending" ${disablePending ? 'disabled' : ''}>Pending</button>
                     <button type="button" class="order-status-option ${currentStatusLabel === 'Processing' ? 'is-active' : ''}" data-status="Processing">Processing</button>
                     <button type="button" class="order-status-option ${currentStatusLabel === 'Completed' ? 'is-active' : ''}" data-status="Completed">Completed</button>
-                    <button type="button" class="order-status-option ${currentStatusLabel === 'Cancelled' ? 'is-active' : ''}" data-status="Cancelled">Cancelled</button>
+                    <button type="button" class="order-status-option ${currentStatusLabel === 'Cancelled' ? 'is-active' : ''} ${disableCancelled ? 'disabled' : ''}" data-status="Cancelled" ${disableCancelled ? 'disabled' : ''}>Cancelled</button>
                 </div>
             `,
             width: 360,
@@ -976,7 +981,7 @@ $(document).ready(function() {
             },
             didOpen: () => {
                 const popup = Swal.getPopup();
-                popup.querySelectorAll('.order-status-option').forEach(button => {
+                popup.querySelectorAll('.order-status-option:not([disabled])').forEach(button => {
                     button.addEventListener('click', () => {
                         selectedStatus = button.getAttribute('data-status') || 'Pending';
                         popup.querySelectorAll('.order-status-option').forEach(option => option.classList.remove('is-active'));

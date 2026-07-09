@@ -372,12 +372,28 @@ button[type="submit"]:active,
   font-family: var(--font-body);
   font-weight: 600;
   text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-status-option:hover:not(:disabled) {
+  border-color: rgba(117, 66, 36, 0.35);
+  background: rgba(255, 255, 255, 1);
 }
 
 .order-status-option.is-active {
   background: var(--bordeaux);
   color: var(--paper);
   border-color: var(--bordeaux);
+}
+
+.order-status-option:disabled,
+.order-status-option.disabled {
+  background: rgba(200, 200, 200, 0.3);
+  color: rgba(100, 100, 100, 0.5);
+  border-color: rgba(117, 66, 36, 0.1);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 #deactivateBtn {

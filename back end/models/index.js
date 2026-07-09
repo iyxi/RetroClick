@@ -14,6 +14,8 @@ const EmailNotification = require('./emailNotification');
 const Media = require('./media');
 const Review = require('./review');
 const ReviewImage = require('./reviewImage');
+const Stock = require('./stock');
+const StockRestock = require('./stockRestock');
 
 // Initialize models
 const db = {};
@@ -29,6 +31,8 @@ db.Cart = Cart(sequelize, require('sequelize').DataTypes);
 db.CartItem = CartItem(sequelize, require('sequelize').DataTypes);
 db.OrderStatusHistory = OrderStatusHistory(sequelize, require('sequelize').DataTypes);
 db.EmailNotification = EmailNotification(sequelize, require('sequelize').DataTypes);
+db.Stock = Stock(sequelize, require('sequelize').DataTypes);
+db.StockRestock = StockRestock(sequelize, require('sequelize').DataTypes);
 
 // ========== PRODUCTS & INVENTORY ==========
 db.Item.hasMany(db.ItemImage, {
@@ -36,6 +40,22 @@ db.Item.hasMany(db.ItemImage, {
     onDelete: 'CASCADE'
 });
 db.ItemImage.belongsTo(db.Item, {
+    foreignKey: 'item_id'
+});
+
+db.Item.hasOne(db.Stock, {
+    foreignKey: 'item_id',
+    onDelete: 'CASCADE'
+});
+db.Stock.belongsTo(db.Item, {
+    foreignKey: 'item_id'
+});
+
+db.Item.hasMany(db.StockRestock, {
+    foreignKey: 'item_id',
+    onDelete: 'CASCADE'
+});
+db.StockRestock.belongsTo(db.Item, {
     foreignKey: 'item_id'
 });
 

@@ -253,11 +253,26 @@ const sendOrderEmail = async ({ orderId, recipientEmail, recipientName, subject,
     }
 };
 
-const deductInventory = async (orderLines = []) => {
+const deductInventory = async (orderid) => {
     try {
+        // Fetch raw order lines for this order
+        const orderLines = await OrderLine.findAll({
+            where: { orderinfo_id: orderid },
+            raw: true
+        });
+
+        console.log(`Deducting inventory for order ${orderid}, found ${orderLines.length} order lines`);
+
+        if (!orderLines || orderLines.length === 0) {
+            console.log(`No order lines found for order ${orderid}`);
+            return;
+        }
+
         for (const orderLine of orderLines) {
-            const itemId = orderLine.item_id;
+            const itemId = Number(orderLine.item_id || 0);
             const quantityToDeduct = Number(orderLine.quantity || 0);
+
+            console.log(`Processing item ${itemId}, quantity to deduct: ${quantityToDeduct}`);
 
             if (itemId && quantityToDeduct > 0) {
                 const stock = await Stock.findByPk(itemId);
@@ -271,14 +286,15 @@ const deductInventory = async (orderLines = []) => {
                         { where: { item_id: itemId } }
                     );
                     
-                    console.log(`Stock deducted for item ${itemId}: ${quantityToDeduct} units deducted. New quantity: ${newQuantity}`);
+                    console.log(`✓ Stock deducted for item ${itemId}: ${quantityToDeduct} units deducted. Old: ${currentQuantity}, New: ${newQuantity}`);
                 } else {
-                    console.log(`Stock record not found for item ${itemId}`);
+                    console.log(`✗ Stock record not found for item ${itemId}`);
                 }
             }
         }
     } catch (inventoryError) {
         console.log('Inventory deduction error:', inventoryError.message);
+        console.error(inventoryError);
         throw inventoryError;
     }
 };
@@ -577,6 +593,25 @@ exports.updateOrder = async (req, res) => {
                 return res.status(400).json({ error: 'Invalid order status' });
             }
 
+            // Validate status transitions
+            const currentStatus = order.status;
+            
+            // Cannot revert to Pending if order is already Processing, Completed, or Cancelled
+            if (normalizedStatus === 'Pending' && currentStatus !== 'Pending') {
+                return res.status(400).json({ 
+                    error: 'Cannot revert to Pending status',
+                    message: `Order is already ${currentStatus}. Status transitions are one-way forward.`
+                });
+            }
+
+            // Cannot cancel if order is already Completed
+            if (normalizedStatus === 'Cancelled' && currentStatus === 'Completed') {
+                return res.status(400).json({ 
+                    error: 'Cannot cancel a completed order',
+                    message: 'Completed orders cannot be cancelled.'
+                });
+            }
+
             updateData.status = normalizedStatus;
         }
 
@@ -600,7 +635,7 @@ exports.updateOrder = async (req, res) => {
         // Deduct inventory when order moves to Processing or Completed status from Pending
         if ((updateData.status === 'Processing' || updateData.status === 'Completed') && previousStatus === 'Pending' && Array.isArray(updatedOrder.OrderLines) && updatedOrder.OrderLines.length > 0) {
             try {
-                await deductInventory(updatedOrder.OrderLines);
+                await deductInventory(id);
             } catch (inventoryError) {
                 console.log('Warning: Failed to deduct inventory, but order status updated:', inventoryError.message);
             }
